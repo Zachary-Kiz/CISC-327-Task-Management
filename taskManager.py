@@ -12,23 +12,25 @@ class Task:
         self.project = project
         self.deadline = deadline
         self.tasks = []
+          
         
-    def create_task(self, description, status=Status.NOT_STARTED, priority="L", project=None, deadline=None): #creating a task there is a description and  a status that is provided (if no status given, default of "not started" is given)
-        task = Task(description, status, priority, project, deadline)
-        self.tasks.append(task)    
-        
-    def assign_status(self, task, status):
-        if task.status == status: #if task is assigned to the same status already we will return a statement
+    def assign_status(self, status):
+        if self.status == status: #if task is assigned to the same status already we will return a statement
             print("Task is already in the", status, "state.")
         else:
-            task.status = status
+            self.status = status
             print("Task has been assigned new state") #printing this statement to confirm the status change
 
 
     def view_status(self, task):
         #viewing task will print the description and status of it
         print(f"Task Description: {task.description}")
-        print(f"Task Status: {task.status}")    
+        print(f"Task Status: {task.status}") 
+        
+    def __str__(self):
+        task_info = f"Description: {self.description}\nStatus: {self.status}\nPriority: {self.priority}\nProject: {self.project}\nDeadline: {self.deadline}"
+        return task_info    
+    
         
 
 class User:
@@ -43,34 +45,27 @@ class Project:
         self.name = name
         self.tasks = []
         self.projects = []
-        
-    def create_project(self, name, tasks=None):
-        project = Project(name) #creating project
-        
-        if tasks:
-            for task in tasks:
-                project.add_task(task) #assigning all given tasks to it
-    
-        self.projects.append(project)
 
     
-    def add_task(self, project, task):
-        project.tasks.append(task) #manually being able to add a task to a given project
+    def add_task(self, task):
+        self.tasks.append(task) #manually being able to add a task to a given project
+        print("added successfully")
         
-    def remove_task(self, project, task):
-        project.tasks.remove(task) #manually being able to remove certain task from a project
-    
+    def remove_task(self, task):
+        self.tasks.remove(task) #manually being able to remove certain task from a project
+        print("removed successfully")
 
     def is_completed(self):
         #returns true if all tasks are stated as "Completed"
         return all(task.status == Status.COMPLETED for task in self.tasks)
     
-    def view_project(self, project):
+    def __str__(self):
         #being able to view the prject will show the project name along with associated tasks
-        print(f"Project Name: {project.name}")
-        for task in project.tasks:
-            self.view_task(task)    
-            
+        project_info = f"Project Name: {self.name}\n"
+        for task in self.tasks:
+            project_info += str(task.description) + "\n"
+        return project_info
+   
 #------------------------------------------------------------------
 
 
