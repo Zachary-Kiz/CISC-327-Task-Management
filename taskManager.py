@@ -11,23 +11,13 @@ class Task:
         self.priority = priority
         self.project = project
         self.deadline = deadline
+        self.tasks = []
         
-
-class User:
-    def __init__(self, user, pwd):
-        self.user = user
-        self.pwd = pwd
-        
-#-------------------------------------------------------------------------       
-class ProgressManager: #this class tracks the progress of specific tasks
-    def __init__(self):
-        self.tasks = [] #only attribute is the list of tasks that have been created and stored
-
     def create_task(self, description, status=Status.NOT_STARTED, priority="L", project=None, deadline=None): #creating a task there is a description and  a status that is provided (if no status given, default of "not started" is given)
-        task = Task(description, status, priority)
-        self.tasks.append(task)
-
-    def assign_task(self, task, status):
+        task = Task(description, status, priority, project, deadline)
+        self.tasks.append(task)    
+        
+    def assign_status(self, task, status):
         if task.status == status: #if task is assigned to the same status already we will return a statement
             print("Task is already in the", status, "state.")
         else:
@@ -35,13 +25,17 @@ class ProgressManager: #this class tracks the progress of specific tasks
             print("Task has been assigned new state") #printing this statement to confirm the status change
 
 
-    def view_task(self, task):
+    def view_status(self, task):
         #viewing task will print the description and status of it
         print(f"Task Description: {task.description}")
-        print(f"Task Status: {task.status}")
+        print(f"Task Status: {task.status}")    
         
-        
-        
+
+class User:
+    def __init__(self, user, pwd):
+        self.user = user
+        self.pwd = pwd      
+
 #-------------------------------------------------------------------------       
 class Project:
     def __init__(self, name):
