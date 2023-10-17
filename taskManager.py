@@ -1,5 +1,3 @@
-import argparse
-
 class Status:
     NOT_STARTED = "Not started"
     IN_PROGRESS = "In progress"
@@ -7,9 +5,12 @@ class Status:
     
 class Task:
     #Task class describing attributes of a task
-    def __init__(self, description, status=Status.NOT_STARTED):
+    def __init__(self, description, status=Status.NOT_STARTED, priority, project=None, deadline=None):
         self.description = description
         self.status = status
+        self.priority = priority
+        self.project = project
+        self.deadline = deadline
         
 
 class User:
@@ -22,8 +23,8 @@ class ProgressManager: #this class tracks the progress of specific tasks
     def __init__(self):
         self.tasks = [] #only attribute is the list of tasks that have been created and stored
 
-    def create_task(self, description, status=Status.NOT_STARTED): #creating a task there is a description and  a status that is provided (if no status given, default of "not started" is given)
-        task = Task(description, status)
+    def create_task(self, description, status=Status.NOT_STARTED, priority): #creating a task there is a description and  a status that is provided (if no status given, default of "not started" is given)
+        task = Task(description, status, priority)
         self.tasks.append(task)
 
     def assign_task(self, task, status):
