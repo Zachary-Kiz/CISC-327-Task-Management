@@ -5,7 +5,7 @@ class Status:
     
 class Task:
     #Task class describing attributes of a task
-    def __init__(self, description, status=Status.NOT_STARTED, priority, project=None, deadline=None):
+    def __init__(self, description, status=Status.NOT_STARTED, priority="L", project=None, deadline=None):
         self.description = description
         self.status = status
         self.priority = priority
@@ -23,7 +23,7 @@ class ProgressManager: #this class tracks the progress of specific tasks
     def __init__(self):
         self.tasks = [] #only attribute is the list of tasks that have been created and stored
 
-    def create_task(self, description, status=Status.NOT_STARTED, priority): #creating a task there is a description and  a status that is provided (if no status given, default of "not started" is given)
+    def create_task(self, description, status=Status.NOT_STARTED, priority="L", project=None, deadline=None): #creating a task there is a description and  a status that is provided (if no status given, default of "not started" is given)
         task = Task(description, status, priority)
         self.tasks.append(task)
 
