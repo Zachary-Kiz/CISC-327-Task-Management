@@ -5,8 +5,8 @@ class Status:
     
 class Task:
     #Task class describing attributes of a task
-    def __init__(self, description, status=Status.NOT_STARTED, priority="L", project=None, deadline=None):
-        self.description = description
+    def __init__(self, title, status=Status.NOT_STARTED, priority="L", project=None, deadline=None):
+        self.title = title
         self.status = status
         self.priority = priority
         self.project = project
@@ -24,11 +24,11 @@ class Task:
 
     def view_status(self, task):
         #viewing task will print the description and status of it
-        print(f"Task Description: {task.description}")
+        print(f"Task Description: {task.title}")
         print(f"Task Status: {task.status}") 
         
     def __str__(self):
-        task_info = f"Description: {self.description}\nStatus: {self.status}\nPriority: {self.priority}\nProject: {self.project}\nDeadline: {self.deadline}"
+        task_info = f"Title: {self.title}\nStatus: {self.status}\nPriority: {self.priority}\nProject: {self.project}\nDeadline: {self.deadline}"
         return task_info    
     
         
@@ -63,9 +63,8 @@ class Project:
         #being able to view the prject will show the project name along with associated tasks
         project_info = f"Project Name: {self.name}\n"
         for task in self.tasks:
-            project_info += str(task.description) + "\n"
+            project_info += str(task.title) + "\n"
         return project_info
    
 #------------------------------------------------------------------
-
 
