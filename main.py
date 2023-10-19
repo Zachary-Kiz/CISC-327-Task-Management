@@ -3,7 +3,7 @@ from datetime import datetime,date, timedelta
 import re
 
 def createTask():
-    
+    #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
     
     priority = input("Enter L for low priority, M for medium, H for high: ")
@@ -26,7 +26,7 @@ def createTask():
         deadline = input("Enter due date in YYYY/MM/DD format: ")
 
 
-    task = Task(title, status, priority, project, deadline)
+    task = Task(title, status, priority, project, deadline) #taking input from user and creating the object
     print(task)
 
     
@@ -34,6 +34,7 @@ def createTask():
 def changeStatus():
     task_name = input("Enter the task name: ")
 
+    #finding task object
     found_task = None
     for task in Task().tasks:
         if task.title == task_name:
@@ -53,6 +54,7 @@ def changeStatus():
             print("Invalid status choice.")
             return
 
+        #checking if new status is different than current status
         if found_task.status == status:
             print("Task is already in the selected status.")
         else:
@@ -64,6 +66,7 @@ def changeStatus():
 def viewStatus():
     task_name = input("Enter the task name: ")
 
+    #finding task and outputting it for the user to see
     found_task = None
     for task in Task().tasks:
         if task.title == task_name:
@@ -73,7 +76,8 @@ def viewStatus():
     
 def createProject():
     project_name = input("Enter a project name: ")
-    
+
+    #taking user input to create Project pbject
     project = Project(project_name)
     print(project)
     return project
@@ -81,16 +85,18 @@ def createProject():
 def addTaskToProject():
     project_name = input("Enter the project name: ")
 
+    #finding inputted project
     found_project = None
     for project in Project().projects:
         if project.name == project_name:
             
             task_name = input("Enter the task name: ")
-        
+
+            #finding inoputted task
             found_task = None
             for task in Task().tasks:
                 if task.title == task_name:
-                    project.add_task(task)
+                    project.add_task(task) #adding task to project
             
             print("Task not found.")            
     
@@ -108,14 +114,16 @@ def removeTaskFromProject():
             found_task = None
             for task in Task().tasks:
                 if task.title == task_name:
-                    project.remove_task(task)
+                    project.remove_task(task) #removing task from project if both task and project are found
             
             print("Task not found.")            
     
     print("Project not found.")    
     
 def viewProject():
+    project_name = input("Enter the project name: ")
     
+    #finding inputted project and outputting it
     found_project = None
     for project in Project().projects:
         if project.name == project_name:
