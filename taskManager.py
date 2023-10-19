@@ -5,13 +5,14 @@ class Status:
     
 class Task:
     #Task class describing attributes of a task
-    def __init__(self, title, status=Status.NOT_STARTED, priority="L", project=None, deadline=None):
+    def __init__(self, title, status=Status.NOT_STARTED, priority="L", project=None, deadline=None, extra = []):
         self.title = title
         self.status = status
         self.priority = priority
         self.project = project
         self.deadline = deadline
         self.tasks = []
+        self.extra = []
           
         
     def assign_status(self, status):
@@ -26,9 +27,20 @@ class Task:
         #viewing task will print the description and status of it
         print(f"Task Description: {task.title}")
         print(f"Task Status: {task.status}") 
+    
+    def update_pri(self, priority):
+        self.priority = priority
+        print(f"Task priority updated to {self.priority}")
+
+    def update_date(self, deadline):
+        self.deadline = deadline
+        print(f"Task deadline updated to {self.deadline}")
+
+    def __lt__(self, other):
+        return self.title < other.title
         
     def __str__(self):
-        task_info = f"Title: {self.title}\nStatus: {self.status}\nPriority: {self.priority}\nProject: {self.project}\nDeadline: {self.deadline}"
+        task_info = f"{self.title}"
         return task_info    
     
         

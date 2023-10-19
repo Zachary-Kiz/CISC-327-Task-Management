@@ -1,5 +1,5 @@
 from taskManager import *
-from datetime import date
+from datetime import datetime,date, timedelta
 import re
 
 def createTask():
@@ -76,6 +76,7 @@ def createProject():
     
     project = Project(project_name)
     print(project)
+    return project
     
 def addTaskToProject():
     project_name = input("Enter the project name: ")
@@ -122,24 +123,128 @@ def viewProject():
             
     print("Project not found.")   
 
+def sortByPriority(taskList):
+    lowPri = []
+    medPri = []
+    highPri = []
+    for task in taskList:
+        if task.priority == "L":
+            lowPri.append(task)
+        if task.priority == "M":
+            medPri.append(task)
+        if task.priority == "H":
+            highPri.append(task)
+    lowPri.sort()
+    medPri.sort()
+    highPri.sort()
+    highPri.extend(medPri)
+    highPri.extend(lowPri)
+    x = 1
+    for title in highPri:
+        print(str(x) + ". " + title.title)
+        x += 1
+
+
+def sortDates(taskList):
+    taskList.sort(key=lambda date: datetime.strptime(date.deadline, "%Y/%m/%d"))
+    taskList.reverse()
+    for task in taskList:
+        print(task)
+
+def updatePriority(project):
+    printTasks(project)
+    taskNum = input("Enter the number associated with the task whose priority you want to update: ")
+    task = project.tasks[int(taskNum) - 1]
+    print("Task priority is: " + task.priority)
+    update = input("Enter the new priority of the task: ")
+    priors = ["L","M","H"]
+    while update not in priors:
+        print("Not a valid input, please try again")
+        update = input("Enter the new priority of the task: ")
+    task.update_pri(update)
+
+def updateDeadline(project):
+    printTasks(project)
+    taskNum = input("Enter the number associated with the task whose deadline you want to update: ")
+    task = project.tasks[int(taskNum) - 1]
+    if task.deadline == None:
+        print("Task does not currently have a deadline")
+    else: 
+        print("Task priority is: " + task.deadline)
+    deadline = input("Enter the new deadline of the task: ")
+    pattern = r'^\d{4}/\d{2}/\d{2}$'
+    
+    while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+        deadline = input("Enter due date in YYYY/MM/DD format: ")
+    task.update_date(deadline)
+    
+
+
+def chooseProj(projList):
+    check = True
+    while check:
+        if projList == []:
+            print("You do not currently have any projects. Please create one.")
+            project = createProject()
+            projList.append(project)
+        else:
+            print("Enter the number associated with a project to access it. Enter P to create a new project: ")
+            x = 1
+            for proj in projList:
+                print(str(x) + ". " + proj)
+                x+=1
+            custWant = input()
+            if custWant == "P":
+                project = createProject()
+                projList.append(project)
+
+            elif custWant.isdigit() and int(custWant) > 0 and int(custWant) <= x:
+                projToOpen = projList[x-1]
+                check = False
+            else: 
+                print("This is not a valid input, please try again")
+    
+def printTasks(project):
+    project.tasks.sort()
+    x = 1
+    for task in project.tasks:
+        print(str(x) + ". ", end="")
+        print(task)
+        x += 1
+
+def notifyLate(projList):
+    today = date.today()
+    dates = today.strftime("%Y/%m/%d")
+    times = dates.split("/")
+    d1 = date(dates[0], dates[1], dates[2])
+    for project in projList:
+        lateTasks = []
+        for task in project.tasks:
+            deadline = task.deadline
+            times2 = deadline.split("/")
+            d2 = date(times2[0], times2[1], times2[2])
+            if d1 - d2 > timedelta(0):
+                lateTasks.append(task)
+        lateTasks.sort()
+        if len(lateTasks) > 0:
+            print("Late tasks in project ", end="")
+            print(project)
+            for task in lateTasks:
+                print(task)
+
+
 
 
 
 def main():
-
-    createTask()
-    
-    changeStatus()
-    
-    viewStatus()
-    
-    createProject()
-    
-    addTaskToProject()
-    
-    removeTaskFromProject()
-    
-    viewProject()
+    print("Welcome to our task management software!")
+    projList = []
+    x = Task("Hello")
+    y = Task("Allo")
+    proj = Project("Proj1")
+    proj.tasks.append(x)
+    proj.tasks.append(y)
+    updateDeadline(proj)
     
     
 
