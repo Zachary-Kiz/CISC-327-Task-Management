@@ -50,7 +50,7 @@ def log_in():
         print("Invalid username or password. Please try again.")
         log_in()
         
-def createTask():
+def createTask(project):
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
     
@@ -65,7 +65,6 @@ def createTask():
         status = Status.COMPLETED
         
     
-    project = None
 
     deadline = input("Enter due date in YYYY/MM/DD format: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
@@ -76,6 +75,7 @@ def createTask():
 
     task = Task(title, status, priority, project, deadline) #taking input from user and creating the object
     print(task)
+    project.add_task(task)
 
     
     
@@ -244,19 +244,31 @@ def chooseProj(projList):
             project = createProject()
             projList.append(project)
         else:
-            print("Enter the number associated with a project to access it. Enter P to create a new project: ")
+            print("Enter the number associated with a project to access it. Enter P to create a new project ")
+            print("Enter N to exit: ")
             x = 1
             for proj in projList:
-                print(str(x) + ". " + proj)
+                print(str(x) + ". ", end="")
+                print(proj)
                 x+=1
             custWant = input()
             if custWant == "P":
                 project = createProject()
                 projList.append(project)
+                print("Do you want to access this project?")
+                projCheck = input("Press Y to access, N to exit: ")
+                if projCheck == "Y":
+                    return project
+                else:
+                    print("Returning...")
+            
+            elif custWant == "N":
+                return None
 
             elif custWant.isdigit() and int(custWant) > 0 and int(custWant) <= x:
-                projToOpen = projList[x-1]
+                projToOpen = projList[int(custWant)-1]
                 check = False
+                return projToOpen
             else: 
                 print("This is not a valid input, please try again")
     
@@ -272,13 +284,13 @@ def notifyLate(projList):
     today = date.today()
     dates = today.strftime("%Y/%m/%d")
     times = dates.split("/")
-    d1 = date(dates[0], dates[1], dates[2])
+    d1 = date(int(times[0]), int(times[1]), int(times[2]))
     for project in projList:
         lateTasks = []
         for task in project.tasks:
             deadline = task.deadline
             times2 = deadline.split("/")
-            d2 = date(times2[0], times2[1], times2[2])
+            d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
             if d1 - d2 > timedelta(0):
                 lateTasks.append(task)
         lateTasks.sort()
@@ -288,6 +300,32 @@ def notifyLate(projList):
             for task in lateTasks:
                 print(task)
 
+def projManage(project):
+    check = True
+    while check:
+        print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to exit")
+        userInput = input()
+        if userInput == "1":
+            print("Press 1 to view sorted alphabetically, 2 to view sorted by priority, 3 to view sorted by deadline")
+            view = input()
+            if view == "1":
+                printTasks(project)
+            elif view == "2":
+                sortByPriority(project.tasks)
+            elif view == "3":
+                sortDates(project.tasks)
+        elif userInput == "2":
+            createTask(project)
+        elif userInput == "3":
+            choice = input("Enter 1 to update a priority, 2 to update a deadline: ")
+            if choice == "1":
+                updatePriority(project)
+            elif choice == "2":
+                updateDeadline(project)
+        elif userInput == "4":
+            check = False
+        else: 
+            print("Please enter a valid input")
 
 
 def main():
@@ -301,12 +339,15 @@ def main():
     elif choice == "2":
         log_in()
     projList = []
-    x = Task("Hello")
-    y = Task("Allo")
-    proj = Project("Proj1")
-    proj.tasks.append(x)
-    proj.tasks.append(y)
-    updateDeadline(proj)
+    check = True
+    while check:
+        notifyLate(projList)
+        proj = chooseProj(projList)
+        if proj == None:
+            check = False
+            print("Thank you for using our program")
+        else:
+            projManage(proj)
     
     
 
