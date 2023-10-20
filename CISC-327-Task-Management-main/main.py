@@ -79,12 +79,13 @@ def createTask(project):
 
     
     
-def changeStatus():
+def changeStatus(project):
+    # User can change task status
     task_name = input("Enter the task name: ")
 
     #finding task object
     found_task = None
-    for task in Task().tasks:
+    for task in project.tasks:
         if task.title == task_name:
             found_task = task
             break
@@ -111,16 +112,19 @@ def changeStatus():
     else:
         print("Task not found.")
         
-def viewStatus():
+def viewStatus(project):
+    # view status of a task
     task_name = input("Enter the task name: ")
 
     #finding task and outputting it for the user to see
     found_task = None
-    for task in Task().tasks:
+    for task in project.tasks:
         if task.title == task_name:
             print(task)
+            return
     
     print("Task not found.")
+    return
     
 def createProject():
     project_name = input("Enter a project name: ")
@@ -151,6 +155,7 @@ def addTaskToProject():
     print("Project not found.")    
     
 def removeTaskFromProject():
+    # User can remove task from project
     project_name = input("Enter the project name: ")
 
     found_project = None
@@ -169,6 +174,7 @@ def removeTaskFromProject():
     print("Project not found.")    
     
 def viewProject():
+    # Allows user to view project
     project_name = input("Enter the project name: ")
     
     #finding inputted project and outputting it
@@ -180,6 +186,7 @@ def viewProject():
     print("Project not found.")   
 
 def sortByPriority(taskList):
+    # Prints tasks sorted by priority
     lowPri = []
     medPri = []
     highPri = []
@@ -202,12 +209,14 @@ def sortByPriority(taskList):
 
 
 def sortDates(taskList):
+    # Prints tasks sorted by deadline
     taskList.sort(key=lambda date: datetime.strptime(date.deadline, "%Y/%m/%d"))
     taskList.reverse()
     for task in taskList:
         print(task)
 
 def updatePriority(project):
+    # User can update a priority deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
     task = project.tasks[int(taskNum) - 1]
@@ -220,6 +229,7 @@ def updatePriority(project):
     task.update_pri(update)
 
 def updateDeadline(project):
+    # User can update a task deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose deadline you want to update: ")
     task = project.tasks[int(taskNum) - 1]
@@ -237,6 +247,7 @@ def updateDeadline(project):
 
 
 def chooseProj(projList):
+    # Allows the user to create and manage projects
     check = True
     while check:
         if projList == []:
@@ -273,6 +284,7 @@ def chooseProj(projList):
                 print("This is not a valid input, please try again")
     
 def printTasks(project):
+    # Prints all tasks in a project for user
     project.tasks.sort()
     x = 1
     for task in project.tasks:
@@ -281,6 +293,7 @@ def printTasks(project):
         x += 1
 
 def notifyLate(projList):
+    # Checks if any tasks are overdue and notifies user
     today = date.today()
     dates = today.strftime("%Y/%m/%d")
     times = dates.split("/")
@@ -301,6 +314,7 @@ def notifyLate(projList):
                 print(task)
 
 def projManage(project):
+    # Function for interacting with tasks within a project
     check = True
     while check:
         print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to exit")
@@ -317,11 +331,13 @@ def projManage(project):
         elif userInput == "2":
             createTask(project)
         elif userInput == "3":
-            choice = input("Enter 1 to update a priority, 2 to update a deadline: ")
+            choice = input("Enter 1 to update a priority, 2 to update a deadline, 3 to update status: ")
             if choice == "1":
                 updatePriority(project)
             elif choice == "2":
                 updateDeadline(project)
+            elif choice == "3":
+                changeStatus(project)
         elif userInput == "4":
             check = False
         else: 
