@@ -5,14 +5,15 @@ class Status:
     
 class Task:
     #Task class describing attributes of a task
-    def __init__(self, title, status=Status.NOT_STARTED, priority="L", project=None, deadline=None, extra = []):
+    def __init__(self, title,desc, status=Status.NOT_STARTED, priority="L", project=None, deadline=None, extra = []):
         self.title = title
+        self.desc = desc
         self.status = status
         self.priority = priority
         self.project = project
         self.deadline = deadline
         self.tasks = []
-        self.extra = []
+        self.extra = extra
           
         
     def assign_status(self, status):
@@ -27,6 +28,15 @@ class Task:
         #viewing task will print the description and status of it
         print(f"Task Description: {task.title}")
         print(f"Task Status: {task.status}") 
+
+    def view_task(self):
+        print(f"Task Description: {self.title}")
+        print(f"Task Description: {self.desc}")
+        print(f"Task Status: {self.status}") 
+        print(f"Task Priority: {self.priority}")
+        print(f"Task Deadline: {self.deadline}")
+        for key in self.extra.keys():
+            print(f"{key}: {self.extra[key]}")
     
     def update_pri(self, priority):
         self.priority = priority
@@ -35,6 +45,7 @@ class Task:
     def update_date(self, deadline):
         self.deadline = deadline
         print(f"Task deadline updated to {self.deadline}")
+
 
     def __lt__(self, other):
         return self.title < other.title
@@ -66,6 +77,9 @@ class Project:
     def remove_task(self, task):
         self.tasks.remove(task) #manually being able to remove certain task from a project
         print("removed successfully")
+
+    def get_tasks(self):
+        return self.tasks
 
     def is_completed(self):
         #returns true if all tasks are stated as "Completed"

@@ -53,6 +53,8 @@ def log_in():
 def createTask(project):
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
+
+    desc = input("Add a task description: ")
     
     priority = input("Enter L for low priority, M for medium, H for high: ")
     
@@ -72,8 +74,18 @@ def createTask(project):
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
 
+    print("Would you like to add additional fields?")
+    extra = input("Enter Y for yes, N for No: ")
+    fields = {}
+    while extra == "Y":
+        fieldTitle = input("Enter the title of the new field: ")
+        fieldDesc = input("Enter the description for the field: ")
+        fields[fieldTitle] = fieldDesc
+        print("Field has been added to task. Enter Y if you would like to add another")
+        extra = input("")
 
-    task = Task(title, status, priority, project, deadline) #taking input from user and creating the object
+
+    task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
     print(task)
     project.add_task(task)
 
@@ -286,11 +298,14 @@ def chooseProj(projList):
 def printTasks(project):
     # Prints all tasks in a project for user
     project.tasks.sort()
-    x = 1
-    for task in project.tasks:
-        print(str(x) + ". ", end="")
-        print(task)
-        x += 1
+    if len(project.tasks) == 0:
+        print("No tasks currently assigned to project")
+    else:
+        x = 1
+        for task in project.tasks:
+            print(str(x) + ". ", end="")
+            print(task)
+            x += 1
 
 def notifyLate(projList):
     # Checks if any tasks are overdue and notifies user
@@ -316,6 +331,8 @@ def notifyLate(projList):
 def projManage(project):
     # Function for interacting with tasks within a project
     check = True
+    print("You have selected ", end="")
+    print(project)
     while check:
         print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to exit")
         userInput = input()
@@ -328,6 +345,11 @@ def projManage(project):
                 sortByPriority(project.tasks)
             elif view == "3":
                 sortDates(project.tasks)
+            print("Enter the number associated with a task if you want to view more details")
+            viewMore = input()
+            if viewMore.isdigit():
+                task = project.tasks[int(viewMore)-1]
+                task.view_task()
         elif userInput == "2":
             createTask(project)
         elif userInput == "3":
