@@ -42,15 +42,21 @@ def create_account():
              print("Password must be at least 8 characters long and contain at least one each of:\nspecial character, capital letter, lowercase letter, and a number.")
              create_account()
         else:
-            user_data[username] = password
-            save_user_data()
+            x = db.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER USERS"})
+            db.users.insert_one({"_id": x[0]["COUNT"],"username":username, "password": password})
+            db.count.find_one_and_update(
+                {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER USERS"},
+                {"$inc": {'COUNT': 1}}
+            )
             print("Account created successfully!")
 
 #log-in function
 def log_in():
     username = input("Enter your username: ")
     password = input("Enter your password: ")
-    if username in user_data and user_data[username] == password:
+    user = db.users.find_one({"username": username, "password": password})
+    
+    if user:
         print("Login successful!")
         return True
     else:
