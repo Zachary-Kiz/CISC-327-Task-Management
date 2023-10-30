@@ -6,7 +6,7 @@ client = MongoClient(uri, server_api=ServerApi('1'))
 # Send a ping to confirm a successful connection
 try:
     mydb = client["mydatabase"]
-    x = mydb.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"})
-    print(x[0]["COUNT"])
+    mydb.count.insert_one({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS", "COUNT":1})
+    
 except Exception as e:
     print(e)

@@ -43,12 +43,13 @@ def create_account():
              create_account()
         else:
             x = db.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER USERS"})
-            db.users.insert_one({"_id": x[0]["COUNT"],"username":username, "password": password})
+            db.users.insert_one({"_id": x[0]["COUNT"],"username":username, "password": password, "projects":[]})
             db.count.find_one_and_update(
                 {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER USERS"},
                 {"$inc": {'COUNT': 1}}
             )
             print("Account created successfully!")
+            return [username, password]
 
 #log-in function
 def log_in():
@@ -58,12 +59,13 @@ def log_in():
     
     if user:
         print("Login successful!")
-        return True
+        return user["projects"], [username, password]
     else:
         print("Invalid username or password. Please try again.")
         log_in()
         
 def createTask(project):
+    project = db.projects.find_one({"_id": project})
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
 
@@ -105,10 +107,12 @@ def createTask(project):
         "desc": desc,
         "status": status,
         "priority": priority,
-        "project": project.name,
+        "project": project["name"],
         "deadline": deadline,
         "fields": fields
     }])
+
+    db.projects.find_one_and_update({"_id":project["_id"]}, {"$push": {"tasks":x[0]["COUNT"]}})
 
     db.count.find_one_and_update(
         {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"},
@@ -117,7 +121,6 @@ def createTask(project):
 
     task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
     print(task)
-    project.add_task(task)
 
     
     
@@ -168,11 +171,19 @@ def viewStatus(project):
     print("Task not found.")
     return
     
-def createProject():
+def createProject(user):
     project_name = input("Enter a project name: ")
 
     #taking user input to create Project pbject
-    db.projects.insert_one({"name": project_name, "tasks": [] })
+    x = db.count.find_one({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"})
+    db.projects.insert_one({"_id": x["COUNT"],"name": project_name, "tasks": [] })
+    
+    db.users.find_one_and_update({"username":user[0],"password":user[1]},
+                          {"$push": {"projects": x["COUNT"] }}       )
+    db.count.find_one_and_update(
+        {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"},
+        {"$inc": {'COUNT': 1}}
+    )
     project = Project(project_name)
     print(project)
     return project
@@ -289,21 +300,22 @@ def updateDeadline(project):
     
 
 
-def chooseProj(projList):
+def chooseProj(projList,user):
     # Allows the user to create and manage projects
     check = True
     while check:
         if projList == []:
             print("You do not currently have any projects. Please create one.")
-            project = createProject()
+            project = createProject(user)
             projList.append(project)
         else:
             print("Enter the number associated with a project to access it. Enter P to create a new project ")
             print("Enter N to exit: ")
             x = 1
-            for proj in projList:
+            projNames = db.projects.find({"_id": {"$in": projList}})
+            for proj in projNames:
                 print(str(x) + ". ", end="")
-                print(proj)
+                print(proj["name"])
                 x+=1
             custWant = input()
             if custWant == "P":
@@ -403,15 +415,16 @@ def main():
     print("1. Create Account")
     print("2. Log In")
     choice = input("Enter your 1 or 2: ")
-    if choice == "1":
-        create_account()
-    elif choice == "2":
-        log_in()
     projList = []
+    if choice == "1":
+        user = create_account()
+    elif choice == "2":
+        projList, user = log_in()
+    
     check = True
     while check:
-        notifyLate(projList)
-        proj = chooseProj(projList)
+        #notifyLate(projList)
+        proj = chooseProj(projList,user)
         if proj == None:
             check = False
             print("Thank you for using our program")
