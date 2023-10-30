@@ -4,6 +4,13 @@ import re
 import json
 import os
 
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+uri = "mongodb+srv://zachkizell87:f9gYzb7e5LKSkQJX@cluster0.eyssqkn.mongodb.net/?retryWrites=true&w=majority"
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+db = client["mydatabase"]
+
 USER_DATA_FILE = "users.json"
 
 #pull user info from JSON database
@@ -84,6 +91,23 @@ def createTask(project):
         print("Field has been added to task. Enter Y if you would like to add another")
         extra = input("")
 
+    x = db.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"})
+
+    db.tasks.insert_many([{
+        "_id": x[0]["COUNT"],
+        "title": title,
+        "desc": desc,
+        "status": status,
+        "priority": priority,
+        "project": project.name,
+        "deadline": deadline,
+        "fields": fields
+    }])
+
+    db.count.find_one_and_update(
+        {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"},
+        {"$inc": {'COUNT': 1}}
+    )
 
     task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
     print(task)
@@ -142,6 +166,7 @@ def createProject():
     project_name = input("Enter a project name: ")
 
     #taking user input to create Project pbject
+    db.projects.insert_one({"name": project_name, "tasks": [] })
     project = Project(project_name)
     print(project)
     return project
