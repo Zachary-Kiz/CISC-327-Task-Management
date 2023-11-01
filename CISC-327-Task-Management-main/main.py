@@ -121,7 +121,6 @@ def createTask(project):
     print(task)
 
     
-    
 def changeStatus(project):
     # User can change task status
     task_name = input("Enter the task name: ")
