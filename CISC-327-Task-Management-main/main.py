@@ -119,7 +119,6 @@ def createTask(project):
 
     task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
     print(task)
-
     
 def changeStatus(project):
     # User can change task status
