@@ -53,16 +53,16 @@ def create_account():
 
 #log-in function
 def log_in():
-    username = input("Enter your username: ")
-    password = input("Enter your password: ")
-    user = db.users.find_one({"username": username, "password": password})
-    
-    if user:
-        print("Login successful!")
-        return user["projects"], [username, password]
-    else:
-        print("Invalid username or password. Please try again.")
-        log_in()
+    while True:
+        username = input("Enter your username: ")
+        password = input("Enter your password: ")
+        user = db.users.find_one({"username": username, "password": password})
+
+        if user:
+            print("Login successful!")
+            return user["projects"], [username, password]
+        else:
+            print("Invalid username or password. Please try again.")
         
 def createTask(project):
     project = db.projects.find_one({"_id": project})
@@ -85,6 +85,7 @@ def createTask(project):
     pattern = r'^\d{4}/\d{2}/\d{2}$'
     
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+        print("invalid format. try again")
         deadline = input("Enter due date in YYYY/MM/DD format: ")
 
     print("Would you like to add additional fields?")
@@ -118,7 +119,7 @@ def createTask(project):
     )
 
     task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
-    print(task)
+    print("Succesfully created :", task)
     
 def changeStatus(project):
     # User can change task status
@@ -167,15 +168,16 @@ def createProject(user):
     project_name = input("Enter a project name: ")
 
     #taking user input to create Project pbject
-    x = db.count.find_one({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"})
-    db.projects.insert_one({"_id": x["COUNT"], "name": project_name, "tasks": []})
-    
-    db.users.find_one_and_update({"username":user[0],"password":user[1]},
-                          {"$push": {"projects": x["COUNT"] }}       )
-    db.count.find_one_and_update(
+    x = db.count.find_one_and_update(
         {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"},
-        {"$inc": {'COUNT': 1}}
+        {"$inc": {'COUNT': 1}},
+        return_document=True
     )
+    db.projects.insert_one({"_id": x["COUNT"], "name": project_name, "tasks": []})
+
+    db.users.find_one_and_update({"username": user[0], "password": user[1]},
+                                 {"$push": {"projects": x["COUNT"]}})
+
     project = Project(project_name)
     print(project)
     return project
@@ -261,15 +263,17 @@ def sortDates(taskList):
 def updatePriority(project):
     # User can update a priority deadline
     printTasks(project)
-    taskNum = input("Enter the number associated with the task whose priority you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    print("Task priority is: " + task.priority)
+
+    task_name = input("Enter the name of the task whose priority you want to update: ")
+    task = db.tasks.find_one({"title": task_name})
+    print("Task priority is: " + task["priority"])
     update = input("Enter the new priority of the task: ")
     priors = ["L","M","H"]
     while update not in priors:
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
-    task.update_pri(update)
+    db.tasks.update_one({"_id": task["_id"]}, {"$set": {"priority": update}})
+
 
 def updateDeadline(project):
     # User can update a task deadline
@@ -363,8 +367,8 @@ def notifyLate(projList):
 def projManage(project):
     # Function for interacting with tasks within a project
     check = True
-    print("You have selected ", end="")
-    print(project)
+    proj_name = db.projects.find_one({"_id": project})
+    print("You have selected " + proj_name["name"])
     while check:
         print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to exit")
         userInput = input()
