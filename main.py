@@ -1,45 +1,71 @@
 from taskManager import *
 from datetime import datetime,date, timedelta
 import re
-from pymongo import MongoClient
+import json
 import os
 
-client = MongoClient("mongodb+srv://zachkizell87:f9gYzb7e5LKSkQJX@cluster0.eyssqkn.mongodb.net/?retryWrites=true&w=majority")  
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+uri = "mongodb+srv://zachkizell87:f9gYzb7e5LKSkQJX@cluster0.eyssqkn.mongodb.net/?retryWrites=true&w=majority"
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
 db = client["mydatabase"]
 
+USER_DATA_FILE = "users.json"
 
+#pull user info from JSON database
+if os.path.exists(USER_DATA_FILE) and os.path.getsize(USER_DATA_FILE) > 0:
+    with open(USER_DATA_FILE, "r") as file:
+        user_data = json.load(file)
+else: #if no file or empty file establish user database
+    user_data = {}
+
+#save info to user database
+def save_user_data():
+    with open(USER_DATA_FILE, "w") as file:
+        json.dump(user_data, file)
+
+#establish account
 def create_account():
     username = input("Enter your username: ")
-    password = input("Enter your password: ")
-    if db.users.find_one({"username": username}):
+    if username in user_data:
         print("Username already exists. Please choose a different username.")
         create_account()
     else:
+        password = input("Enter your password: ")
+    #password strength checking
         if len(password) < 8 or \
             not any(char.isdigit() for char in password) or \
             not any(char.islower() for char in password) or \
             not any(char.isupper() for char in password) or \
             not any(char in "!@#$%^&*(),.?\":{}|<> " for char in password):
-            print("Password must be at least 8 characters long and contain at least one each of:\nspecial character, capital letter, lowercase letter, and a number.")
-            create_account()
+             print("Password must be at least 8 characters long and contain at least one each of:\nspecial character, capital letter, lowercase letter, and a number.")
+             create_account()
         else:
-            db.users.insert_one({"username": username, "password": password})
+            x = db.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER USERS"})
+            db.users.insert_one({"_id": x[0]["COUNT"],"username":username, "password": password, "projects":[]})
+            db.count.find_one_and_update(
+                {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER USERS"},
+                {"$inc": {'COUNT': 1}}
+            )
             print("Account created successfully!")
-            
+            return [username, password]
 
+#log-in function
 def log_in():
     username = input("Enter your username: ")
     password = input("Enter your password: ")
     user = db.users.find_one({"username": username, "password": password})
-
+    
     if user:
         print("Login successful!")
-        return True
+        return user["projects"], [username, password]
     else:
         print("Invalid username or password. Please try again.")
         log_in()
-    
+        
 def createTask(project):
+    project = db.projects.find_one({"_id": project})
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
 
@@ -70,16 +96,32 @@ def createTask(project):
         fieldTitle = input("Enter the title of the new field: ")
         fieldDesc = input("Enter the description for the field: ")
         fields[fieldTitle] = fieldDesc
-        print("Field has been added to the task. Enter Y if you would like to add another")
-        extra = input("Enter Y for yes, N for No: ")
+        print("Field has been added to task. Enter Y if you would like to add another")
+        extra = input("")
 
-    task = Task(title, desc, status, priority, project, deadline, **fields) 
+    x = db.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"})
+
+    db.tasks.insert_many([{
+        "_id": x[0]["COUNT"],
+        "title": title,
+        "desc": desc,
+        "status": status,
+        "priority": priority,
+        "project": project["name"],
+        "deadline": deadline,
+        "fields": fields
+    }])
+
+    db.projects.find_one_and_update({"_id":project["_id"]}, {"$push": {"tasks":x[0]["COUNT"]}})
+
+    db.count.find_one_and_update(
+        {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"},
+        {"$inc": {'COUNT': 1}}
+    )
+
+    task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
     print(task)
-    project.add_task(task)
 
-    if extra == "N":
-        print("Returning to project management...")
-        return projManage(project)
     
     
 def changeStatus(project):
@@ -129,10 +171,19 @@ def viewStatus(project):
     print("Task not found.")
     return
     
-def createProject():
+def createProject(user):
     project_name = input("Enter a project name: ")
 
-    #taking user input to create Project object
+    #taking user input to create Project pbject
+    x = db.count.find_one({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"})
+    db.projects.insert_one({"_id": x["COUNT"],"name": project_name, "tasks": [] })
+    
+    db.users.find_one_and_update({"username":user[0],"password":user[1]},
+                          {"$push": {"projects": x["COUNT"] }}       )
+    db.count.find_one_and_update(
+        {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"},
+        {"$inc": {'COUNT': 1}}
+    )
     project = Project(project_name)
     print(project)
     return project
@@ -147,7 +198,7 @@ def addTaskToProject():
             
             task_name = input("Enter the task name: ")
 
-            #finding inputted task
+            #finding inoputted task
             found_task = None
             for task in Task().tasks:
                 if task.title == task_name:
@@ -249,21 +300,22 @@ def updateDeadline(project):
     
 
 
-def chooseProj(projList):
+def chooseProj(projList,user):
     # Allows the user to create and manage projects
     check = True
     while check:
         if projList == []:
             print("You do not currently have any projects. Please create one.")
-            project = createProject()
+            project = createProject(user)
             projList.append(project)
         else:
             print("Enter the number associated with a project to access it. Enter P to create a new project ")
             print("Enter N to exit: ")
             x = 1
-            for proj in projList:
+            projNames = db.projects.find({"_id": {"$in": projList}})
+            for proj in projNames:
                 print(str(x) + ". ", end="")
-                print(proj)
+                print(proj["name"])
                 x+=1
             custWant = input()
             if custWant == "P":
@@ -298,42 +350,6 @@ def printTasks(project):
             print(task)
             x += 1
 
-#add members to the current project
-def addMembers(project):
-    print("Would you like to add team members to this project? Y or N")
-    userInput = input()
-    if userInput == "Y":
-        memberName = input("Enter the usersname you would like to add:")
-        #check user exists in JSON database
-        if memberName not in user_data:
-            print("This user does not exist.")
-            addMembers(project)
-        else:
-            project.add_members(memberName)
-            return project
-    else:
-        return None
-
-#assign team members in project to certain tasks 
-def assignTasks(project):
-    print("Current members in this project: ")
-    print(", ".join(project.members))  
-
-    print("Would you like to assign members to this task? Y or N")
-    userInput = input()
-    if userInput == "Y":
-        memberName = input("Enter the username you would like to add: ")
-        #check if user exists
-        if memberName in project.members:
-            print(f"{memberName} has been assigned to the task.")
-            return project
-        else:
-            print(f"{memberName} is not a member of the project. Please add them to the project first.")
-            return None
-    else:
-        print("No members were assigned to the task.")
-        return None
-
 def notifyLate(projList):
     # Checks if any tasks are overdue and notifies user
     today = date.today()
@@ -361,7 +377,7 @@ def projManage(project):
     print("You have selected ", end="")
     print(project)
     while check:
-        print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to add team members, 5 to exit")
+        print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to exit")
         userInput = input()
         if userInput == "1":
             print("Press 1 to view sorted alphabetically, 2 to view sorted by priority, 3 to view sorted by deadline")
@@ -380,19 +396,15 @@ def projManage(project):
         elif userInput == "2":
             createTask(project)
         elif userInput == "3":
-            choice = input("Enter 1 to update a priority, 2 to update a deadline, 3 to update status, 4 to assign members: ")
+            choice = input("Enter 1 to update a priority, 2 to update a deadline, 3 to update status: ")
             if choice == "1":
                 updatePriority(project)
             elif choice == "2":
                 updateDeadline(project)
             elif choice == "3":
                 changeStatus(project)
-            elif choice == "4":
-                assignTasks(project)
         elif userInput == "4":
-            addMembers(project)
-        elif userInput == "5":
-            exit()
+            check = False
         else: 
             print("Please enter a valid input")
 
@@ -402,21 +414,17 @@ def main():
     print("Would you like to?")
     print("1. Create Account")
     print("2. Log In")
-    while True:
-        choice = input("Enter your choice (1 or 2): ")
-        if choice == "1":
-            create_account()
-            break
-        elif choice == "2":
-            if log_in():
-                break
-        else:
-            print("Invalid input. Please enter 1 or 2.")
+    choice = input("Enter your 1 or 2: ")
     projList = []
+    if choice == "1":
+        user = create_account()
+    elif choice == "2":
+        projList, user = log_in()
+    
     check = True
     while check:
-        notifyLate(projList)
-        proj = chooseProj(projList)
+        #notifyLate(projList)
+        proj = chooseProj(projList,user)
         if proj == None:
             check = False
             print("Thank you for using our program")
