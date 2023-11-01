@@ -132,21 +132,17 @@ def changeStatus(project):
         new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
         
         if new_status == "a":
-            status = Status.NOT_STARTED
+            db.tasks.update_one({"_id": task["_id"]}, {"$set": {"status": Status.NOT_STARTED}})
         elif new_status == "b":
-            status = Status.IN_PROGRESS
+            db.tasks.update_one({"_id": task["_id"]}, {"$set": {"status": Status.IN_PROGRESS}})
         elif new_status == "c":
-            status = Status.COMPLETED
+            db.tasks.update_one({"_id": task["_id"]}, {"$set": {"status": Status.COMPLETED}})
         else:
             print("Invalid status choice.")
             return None
 
-        #checking if new status is different than current status
-        if task.status == status:
-            print("Task is already in the selected status.")
-        else:
-            task.status = status
-            print("Status changed.")
+        print("Successfully changed!")
+
     else:
         print("Task not found.")
         
@@ -155,14 +151,11 @@ def viewStatus(project):
     task_name = input("Enter the task name: ")
 
     #finding task and outputting it for the user to see
-    found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
-            print(task)
-            return
-    
-    print("Task not found.")
-    return
+    task = db.tasks.find_one({"title": task_name})
+    if task is not None:
+        print("Task status:", task["status"])
+    else:
+        print("Task not found.")
     
 def createProject(user):
     project_name = input("Enter a project name: ")
