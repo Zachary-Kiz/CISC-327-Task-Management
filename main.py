@@ -45,7 +45,9 @@ def log_in():
 def createTask(project):
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
+
     desc = input("Add a task description: ")
+    
     priority = input("Enter L for low priority, M for medium, H for high: ")
     
     status_choice = input("Choose a status:\na) not started\nb) in progress\nc) completed\n")
@@ -56,6 +58,8 @@ def createTask(project):
     else:
         status = Status.COMPLETED
         
+    
+
     deadline = input("Enter due date in YYYY/MM/DD format: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
     
@@ -77,12 +81,11 @@ def createTask(project):
         "description": desc,
         "status": status,
         "priority": priority,
-        "project_name": project,
         "deadline": deadline,
         "custom_fields": fields
     }
 
-    db.users.update_one({"username": USER, "projects.name": project},
+    db.users.update_one({"username": USER, "projects.name": project['name']},
                         {"$push": {"projects.$.tasks": task_data}})
 
     print("Task created successfully")
@@ -93,49 +96,37 @@ def createTask(project):
     
     
 def changeStatus(project):
-    #user can change task status
+    # User can change task status
     task_name = input("Enter the task name: ")
 
-    #get the user's project
-    user_project = db.users.find_one({"username": USER, "projects.name": project})
+    #finding task object
+    found_task = None
+    for task in project.tasks:
+        if task.title == task_name:
+            found_task = task
+            break
 
-    if user_project:
-        project_tasks = user_project["projects"][0]["tasks"]  #assuming only one project with the same name
-
-        #find the task by title within the project's tasks
-        found_task = None
-        for task in project_tasks:
-            if task["title"] == task_name:
-                found_task = task
-                break
-
-        if found_task:
-            new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
-
-            if new_status == "a":
-                status = Status.NOT_STARTED
-            elif new_status == "b":
-                status = Status.IN_PROGRESS
-            elif new_status == "c":
-                status = Status.COMPLETED
-            else:
-                print("Invalid status choice.")
-                return
-
-            #update the status of the task
-            found_task["status"] = status
-
-            #update the database
-            db.users.update_one(
-                {"username": USER, "projects.name": project},
-                {"$set": {"projects.$.tasks": project_tasks}}
-            )
-
-            print("Successfully updated")
+    if found_task is not None:
+        new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
+        
+        if new_status == "a":
+            status = Status.NOT_STARTED
+        elif new_status == "b":
+            status = Status.IN_PROGRESS
+        elif new_status == "c":
+            status = Status.COMPLETED
         else:
-            print("Task not found.")
+            print("Invalid status choice.")
+            return
+
+        #checking if new status is different than current status
+        if found_task.status == status:
+            print("Task is already in the selected status.")
+        else:
+            found_task.status = status
+            print("Status changed.")
     else:
-        print("Project not found.")
+        print("Task not found.")
         
 def viewStatus(project):
     # view status of a task
@@ -150,7 +141,7 @@ def viewStatus(project):
     
     print("Task not found.")
     return
-
+    
     
 def addTaskToProject():
     project_name = input("Enter the project name: ")
@@ -272,7 +263,11 @@ def projectExistCheck():
 def createProject():
     global USER
     projectName = input("Enter a project name: ")
-    db.users.update_one({"username": USER}, {"$push": {"projects": projectName}})
+    newProject = {
+        "name": projectName,
+        "tasks": []
+    }
+    db.users.update_one({"username": USER}, {"$push": {"projects": newProject}})
     print(f"Project '{projectName}' added for user '{USER}'")
 
 def chooseProj(projList):
@@ -282,19 +277,26 @@ def chooseProj(projList):
     if not check:
             print("You do not currently have any projects. Please create one.")
             projectName = input("Enter a project name: ")
-            db.users.update_one({"username": USER}, {"$push": {"projects": projectName}})
+            newProject = {
+                "name": projectName,
+                "tasks": []
+            }
+            db.users.update_one({"username": USER}, {"$push": {"projects": newProject}})
             print(f"Project '{projectName}' added for user '{USER}'")
     projects = db.users.find_one({"username": USER}).get("projects", [])
     print(f"Projects for user '{USER}':")
     for i, project in enumerate(projects, start=1):
-        print(f"{i}. {project}")
-    select = int(input("Enter the number associated with the project to select it: "))
+        print(f"{i}. {project['name']}")
+    select = int(input("Enter the number associated with the project to select it, or 0 to create another project: "))
     if 1 <= select <= len(projects):
         selectProject = projects[select - 1]
-        print(f"You selected project: '{selectProject}'")
+        print(f"You selected project: '{selectProject['name']}'")
         projManage(selectProject)
+    elif select == 0:
+        createProject()
+        chooseProj()
     else:
-        print("Invalid project number. Please try again.")
+        print("Invalid entry. Please try again.")
         
 def printTasks(project):
     # Prints all tasks in a project for user
@@ -368,8 +370,6 @@ def notifyLate(projList):
 def projManage(project):
     # Function for interacting with tasks within a project
     check = True
-    print("You have selected ", end="")
-    print(project)
     while check:
         print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to add team members, 5 to exit")
         userInput = input()
