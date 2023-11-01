@@ -3,7 +3,7 @@ from datetime import datetime,date, timedelta
 import re
 import json
 import os
-
+import pymongo
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 uri = "mongodb+srv://zachkizell87:f9gYzb7e5LKSkQJX@cluster0.eyssqkn.mongodb.net/?retryWrites=true&w=majority"
@@ -65,7 +65,6 @@ def log_in():
         log_in()
         
 def createTask(project):
-    project = db.projects.find_one({"_id": project})
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
 
@@ -245,58 +244,65 @@ def sortByPriority(taskList):
     medPri = []
     highPri = []
     for task in taskList:
-        if task.priority == "L":
+        if task["priority"] == "L":
             lowPri.append(task)
-        if task.priority == "M":
+        if task["priority"] == "M":
             medPri.append(task)
-        if task.priority == "H":
+        if task["priority"] == "H":
             highPri.append(task)
-    lowPri.sort()
-    medPri.sort()
-    highPri.sort()
+    lowPri = sorted(lowPri, key=lambda x: x['title'])
+    medPri = sorted(medPri, key=lambda x: x['title'])
+    highPri = sorted(highPri, key=lambda x: x['title'])
     highPri.extend(medPri)
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
-        print(str(x) + ". " + title.title)
+        print(str(x) + ". " + title["title"] + '\tpriority: ' + title["priority"])
         x += 1
 
 
 def sortDates(taskList):
     # Prints tasks sorted by deadline
-    taskList.sort(key=lambda date: datetime.strptime(date.deadline, "%Y/%m/%d"))
-    taskList.reverse()
+    list1 = []
     for task in taskList:
-        print(task)
+        list1.append(task)
+    list1.sort(key=lambda date: datetime.strptime(date['deadline'], "%Y/%m/%d"))
+    list1.reverse()
+    x = 1
+    for task in list1:
+        print(str(x) + ". " + task['title'] + '\tdeadline: ' + task['deadline'])
+        x+=1
 
-def updatePriority(project):
+def updatePriority(taskNums, taskList):
     # User can update a priority deadline
-    printTasks(project)
+    printTasks(taskNums)
+    taskList = sorted(taskList, key=lambda x: x["title"])
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    print("Task priority is: " + task.priority)
+    task = taskList[int(taskNum) - 1]
+    print("Task priority is: " + task['priority'])
     update = input("Enter the new priority of the task: ")
     priors = ["L","M","H"]
     while update not in priors:
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
-    task.update_pri(update)
+    db.tasks.update_one({"_id": task["_id"]}, {"$set": {"priority": update}})
 
-def updateDeadline(project):
+def updateDeadline(taskNums,taskList):
     # User can update a task deadline
-    printTasks(project)
+    printTasks(taskNums)
+    taskList = sorted(taskList, key=lambda x: x["title"])
     taskNum = input("Enter the number associated with the task whose deadline you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    if task.deadline == None:
+    task = taskList[int(taskNum) - 1]
+    if task['deadline'] == None:
         print("Task does not currently have a deadline")
     else: 
-        print("Task priority is: " + task.deadline)
+        print("Task priority is: " + task['deadline'])
     deadline = input("Enter the new deadline of the task: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
     
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
-    task.update_date(deadline)
+    db.tasks.update_one({"_id": task["_id"]}, {"$set": {"deadline": deadline}})
     
 
 
@@ -338,16 +344,16 @@ def chooseProj(projList,user):
             else: 
                 print("This is not a valid input, please try again")
     
-def printTasks(project):
+def printTasks(taskList):
     # Prints all tasks in a project for user
-    project.tasks.sort()
-    if len(project.tasks) == 0:
+    if len(taskList) == 0:
         print("No tasks currently assigned to project")
     else:
+        allTasks = db.tasks.find({"_id": {"$in": taskList}}).sort('title',pymongo.ASCENDING)
         x = 1
-        for task in project.tasks:
+        for task in allTasks:
             print(str(x) + ". ", end="")
-            print(task)
+            print(task["title"])
             x += 1
 
 def notifyLate(projList):
@@ -376,31 +382,41 @@ def projManage(project):
     check = True
     print("You have selected ", end="")
     print(project)
+    
     while check:
+        projectFind = db.projects.find_one({"_id": project})
+        taskNums = projectFind["tasks"]
+        taskList = db.tasks.find({"_id": {"$in": taskNums}})
         print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to exit")
         userInput = input()
         if userInput == "1":
             print("Press 1 to view sorted alphabetically, 2 to view sorted by priority, 3 to view sorted by deadline")
             view = input()
             if view == "1":
-                printTasks(project)
+                printTasks(taskNums)
             elif view == "2":
-                sortByPriority(project.tasks)
+                sortByPriority(taskList)
             elif view == "3":
-                sortDates(project.tasks)
+                sortDates(taskList)
             print("Enter the number associated with a task if you want to view more details")
             viewMore = input()
             if viewMore.isdigit():
-                task = project.tasks[int(viewMore)-1]
-                task.view_task()
+                taskList = sorted(taskList, key=lambda x : x['title'])
+                task = taskList[int(viewMore)-1]
+                for key in task.keys():
+                    if key != "_id" and key != "fields":
+                        print(key+": "+ str(task[key]))
+                    if key == "fields":
+                        for key2 in task["fields"].keys():
+                            print(key2 + ": " + str(task["fields"][key2]))
         elif userInput == "2":
-            createTask(project)
+            createTask(projectFind)
         elif userInput == "3":
             choice = input("Enter 1 to update a priority, 2 to update a deadline, 3 to update status: ")
             if choice == "1":
-                updatePriority(project)
+                updatePriority(taskNums, taskList)
             elif choice == "2":
-                updateDeadline(project)
+                updateDeadline(taskNums, taskList)
             elif choice == "3":
                 changeStatus(project)
         elif userInput == "4":
