@@ -79,8 +79,6 @@ def createTask(project):
         status = Status.IN_PROGRESS
     else:
         status = Status.COMPLETED
-        
-    
 
     deadline = input("Enter due date in YYYY/MM/DD format: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
@@ -128,13 +126,9 @@ def changeStatus(project):
     task_name = input("Enter the task name: ")
 
     #finding task object
-    found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
-            found_task = task
-            break
+    task = db.tasks.find_one({"title": task_name})
 
-    if found_task is not None:
+    if task is not None:
         new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
         
         if new_status == "a":
@@ -145,13 +139,13 @@ def changeStatus(project):
             status = Status.COMPLETED
         else:
             print("Invalid status choice.")
-            return
+            return None
 
         #checking if new status is different than current status
-        if found_task.status == status:
+        if task.status == status:
             print("Task is already in the selected status.")
         else:
-            found_task.status = status
+            task.status = status
             print("Status changed.")
     else:
         print("Task not found.")
@@ -175,7 +169,7 @@ def createProject(user):
 
     #taking user input to create Project pbject
     x = db.count.find_one({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"})
-    db.projects.insert_one({"_id": x["COUNT"],"name": project_name, "tasks": [] })
+    db.projects.insert_one({"_id": x["COUNT"], "name": project_name, "tasks": []})
     
     db.users.find_one_and_update({"username":user[0],"password":user[1]},
                           {"$push": {"projects": x["COUNT"] }}       )
@@ -191,52 +185,51 @@ def addTaskToProject():
     project_name = input("Enter the project name: ")
 
     #finding inputted project
-    found_project = None
-    for project in Project().projects:
-        if project.name == project_name:
-            
-            task_name = input("Enter the task name: ")
+    curr_project = db.projects.find_one({"name": project_name})
+    if curr_project is not None:
+        task_name = input("Enter the task name: ")
 
-            #finding inoputted task
-            found_task = None
-            for task in Task().tasks:
-                if task.title == task_name:
-                    project.add_task(task) #adding task to project
-            
-            print("Task not found.")            
-    
-    print("Project not found.")    
+        curr_task = db.tasks.find_one({"title": task_name})
+        if curr_task is not None:
+            curr_project.tasks.append(curr_task)
+            task_id = db.tasks.find_one({"title": task_name}, "_id")
+            db.projects.find_one_and_update({"name": project_name, "tasks": curr_project["tasks"].append(task_id)})
+
+        else:
+            print("Task not found.")
+    else:
+        print("Project not found.")
     
 def removeTaskFromProject():
     # User can remove task from project
     project_name = input("Enter the project name: ")
 
-    found_project = None
-    for project in Project().projects:
-        if project.name == project_name:
-            
-            task_name = input("Enter the task name: ")
-        
-            found_task = None
-            for task in Task().tasks:
-                if task.title == task_name:
-                    project.remove_task(task) #removing task from project if both task and project are found
-            
-            print("Task not found.")            
-    
-    print("Project not found.")    
+    # finding inputted project
+    curr_project = db.projects.find_one({"name": project_name})
+    if curr_project is not None:
+        task_name = input("Enter the task name: ")
+
+        curr_task = db.tasks.find_one({"name": task_name})
+        if curr_task is not None:
+            curr_project.tasks.remove(curr_task)
+            task_id = db.tasks.find_one({"title": task_name}, "_id")
+            db.projects.find_one_and_update({"name": project_name, "tasks": curr_project["tasks"].remove(task_id)})
+
+        else:
+            print("Task not found.")
+    else:
+        print("Project not found.")
     
 def viewProject():
     # Allows user to view project
     project_name = input("Enter the project name: ")
-    
-    #finding inputted project and outputting it
-    found_project = None
-    for project in Project().projects:
-        if project.name == project_name:
-            print(project)
-            
-    print("Project not found.")   
+
+    # finding inputted project
+    curr_project = db.projects.find_one({"name": project_name})
+    if curr_project is not None:
+        print(curr_project)
+    else:
+        print("Project not found.")
 
 def sortByPriority(taskList):
     # Prints tasks sorted by priority
@@ -325,7 +318,7 @@ def chooseProj(projList,user):
                 x+=1
             custWant = input()
             if custWant == "P":
-                project = createProject()
+                project = createProject(user)
                 projList.append(project)
                 print("Do you want to access this project?")
                 projCheck = input("Press Y to access, N to exit: ")
