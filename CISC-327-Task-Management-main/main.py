@@ -191,7 +191,6 @@ def addTaskToProject():
 
         curr_task = db.tasks.find_one({"title": task_name})
         if curr_task is not None:
-            curr_project.tasks.append(curr_task)
             task_id = db.tasks.find_one({"title": task_name}, "_id")
             db.projects.find_one_and_update({"name": project_name, "tasks": curr_project["tasks"].append(task_id)})
 
@@ -211,7 +210,6 @@ def removeTaskFromProject():
 
         curr_task = db.tasks.find_one({"name": task_name})
         if curr_task is not None:
-            curr_project.tasks.remove(curr_task)
             task_id = db.tasks.find_one({"title": task_name}, "_id")
             db.projects.find_one_and_update({"name": project_name, "tasks": curr_project["tasks"].remove(task_id)})
 
