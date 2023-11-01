@@ -5,21 +5,13 @@ from pymongo import MongoClient
 import os
 
 client = MongoClient("mongodb+srv://zachkizell87:f9gYzb7e5LKSkQJX@cluster0.eyssqkn.mongodb.net/?retryWrites=true&w=majority")  
-db = client.userdata 
-collection = db.userdata 
-
-try:
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(e)
+db = client["mydatabase"]
 
 
 def create_account():
     username = input("Enter your username: ")
     password = input("Enter your password: ")
-    # Check if the username already exists in the database
-    if collection.find_one({"username": username}):
+    if db.users.find_one({"username": username}):
         print("Username already exists. Please choose a different username.")
         create_account()
     else:
@@ -31,15 +23,14 @@ def create_account():
             print("Password must be at least 8 characters long and contain at least one each of:\nspecial character, capital letter, lowercase letter, and a number.")
             create_account()
         else:
-            collection.insert_one({"username": username, "password": password})
+            db.users.insert_one({"username": username, "password": password})
             print("Account created successfully!")
             
 
 def log_in():
     username = input("Enter your username: ")
     password = input("Enter your password: ")
-    # Check if the username and password match a document in the collection
-    user = collection.find_one({"username": username, "password": password})
+    user = db.users.find_one({"username": username, "password": password})
 
     if user:
         print("Login successful!")
