@@ -65,8 +65,7 @@ def log_in():
         log_in()
         
 def createTask(project):
-    curr_project = db.projects.find_one({"_id": project})
-
+    project = db.projects.find_one({"_id": project})
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
 
@@ -101,27 +100,28 @@ def createTask(project):
     x = db.count.find({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"})
 
     db.tasks.insert_many([{
+        "_id": x[0]["COUNT"],
         "title": title,
         "desc": desc,
         "status": status,
         "priority": priority,
-        "project": curr_project["name"],
+        "project": project["name"],
         "deadline": deadline,
         "fields": fields
     }])
 
-    db.projects.find_one_and_update({"_id":curr_project["_id"]}, {"$push": {"tasks":x[0]["COUNT"]}})
+    db.projects.find_one_and_update({"_id":project["_id"]}, {"$push": {"tasks":x[0]["COUNT"]}})
 
     db.count.find_one_and_update(
         {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER TASKS"},
         {"$inc": {'COUNT': 1}}
     )
 
-    task = Task(title, desc, status, priority, curr_project["name"], deadline, fields) #taking input from user and creating the object
+    task = Task(title, desc, status, priority, project, deadline, fields) #taking input from user and creating the object
+    print(task)
 
-    print("Succesfully Created!")
-
-
+    
+    
 def changeStatus(project):
     # User can change task status
     task_name = input("Enter the task name: ")
@@ -168,22 +168,20 @@ def viewStatus(project):
 def createProject(user):
     project_name = input("Enter a project name: ")
 
-    x = db.count.find_one_and_update(
-        {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"},
-        {"$inc": {'COUNT': 1}},
-        return_document=True
-    )
-
+    #taking user input to create Project pbject
+    x = db.count.find_one({"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"})
     db.projects.insert_one({"_id": x["COUNT"], "name": project_name, "tasks": []})
-
-    db.users.find_one_and_update(
-        {"username": user[0], "password": user[1]},
-        {"$push": {"projects": x["COUNT"]}}
+    
+    db.users.find_one_and_update({"username":user[0],"password":user[1]},
+                          {"$push": {"projects": x["COUNT"] }}       )
+    db.count.find_one_and_update(
+        {"_id": "UNIQUE COUNT DOCUMENT IDENTIFIER PROJECTS"},
+        {"$inc": {'COUNT': 1}}
     )
-
     project = Project(project_name)
     print(project)
     return project
+    
 def addTaskToProject():
     project_name = input("Enter the project name: ")
 
