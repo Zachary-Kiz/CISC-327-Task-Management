@@ -118,6 +118,7 @@ def createTask(project):
     )
 
     task = Task(title, desc, status, priority, curr_project["name"], deadline, fields) #taking input from user and creating the object
+
     print("Succesfully Created!")
 
     
