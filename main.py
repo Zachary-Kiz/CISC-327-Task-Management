@@ -35,7 +35,7 @@ def log_in():
     password = input("Enter your password: ")
     userCheck = db.users.find_one({"username": username, "password": password})
 
-    if userCheck:x
+    if userCheck:
         USER = username
         print("Login successful!")
     else:
@@ -245,12 +245,13 @@ def updateDeadline(project):
     
 def projectExistCheck():
     global USER
-    if not db.users.find_one({"username": USER, "projects": {"$exists": True, "$ne": []}}):
+    if db.users.find_one({"username": USER, "projects": {"$exists": True, "$ne": []}}):
         return True
     else:
         return False
 
 def createProject():
+    global USER
     projectName = input("Enter a project name: ")
     db.users.update_one({"username": USER}, {"$push": {"projects": projectName}})
     print(f"Project '{projectName}' added for user '{USER}'")
@@ -259,17 +260,23 @@ def chooseProj(projList):
     # Allows the user to create and manage projects
     global USER
     check = projectExistCheck()
-    if check:
+    if not check:
             print("You do not currently have any projects. Please create one.")
             projectName = input("Enter a project name: ")
             db.users.update_one({"username": USER}, {"$push": {"projects": projectName}})
             print(f"Project '{projectName}' added for user '{USER}'")
     projects = db.users.find_one({"username": USER}).get("projects", [])
     print(f"Projects for user '{USER}':")
-    for project in projects:
-        print(project)
-    
-    
+    for i, project in enumerate(projects, start=1):
+        print(f"{i}. {project}")
+    select = int(input("Enter the number associated with the project to select it: "))
+    if 1 <= select <= len(projects):
+        selectProject = projects[select - 1]
+        print(f"You selected project: '{selectProject}'")
+        projManage(selectProject)
+    else:
+        print("Invalid project number. Please try again.")
+        
 def printTasks(project):
     # Prints all tasks in a project for user
     project.tasks.sort()
@@ -392,8 +399,8 @@ def main():
             create_account()
             break
         elif choice == "2":
-            if log_in():
-                break
+            log_in()
+            break
         else:
             print("Invalid input. Please enter 1 or 2.")
 
