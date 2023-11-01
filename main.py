@@ -45,9 +45,7 @@ def log_in():
 def createTask(project):
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
-
     desc = input("Add a task description: ")
-    
     priority = input("Enter L for low priority, M for medium, H for high: ")
     
     status_choice = input("Choose a status:\na) not started\nb) in progress\nc) completed\n")
@@ -58,8 +56,6 @@ def createTask(project):
     else:
         status = Status.COMPLETED
         
-    
-
     deadline = input("Enter due date in YYYY/MM/DD format: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
     
@@ -76,9 +72,20 @@ def createTask(project):
         print("Field has been added to the task. Enter Y if you would like to add another")
         extra = input("Enter Y for yes, N for No: ")
 
-    task = Task(title, desc, status, priority, project, deadline, **fields) 
-    print(task)
-    project.add_task(task)
+    task_data = {
+        "title": title,
+        "description": desc,
+        "status": status,
+        "priority": priority,
+        "project_name": project,
+        "deadline": deadline,
+        "custom_fields": fields
+    }
+
+    db.users.update_one({"username": USER, "projects.name": project},
+                        {"$push": {"projects.$.tasks": task_data}})
+
+    print("Task created successfully")
 
     if extra == "N":
         print("Returning to project management...")
@@ -86,37 +93,49 @@ def createTask(project):
     
     
 def changeStatus(project):
-    # User can change task status
+    #user can change task status
     task_name = input("Enter the task name: ")
 
-    #finding task object
-    found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
-            found_task = task
-            break
+    #get the user's project
+    user_project = db.users.find_one({"username": USER, "projects.name": project})
 
-    if found_task is not None:
-        new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
-        
-        if new_status == "a":
-            status = Status.NOT_STARTED
-        elif new_status == "b":
-            status = Status.IN_PROGRESS
-        elif new_status == "c":
-            status = Status.COMPLETED
-        else:
-            print("Invalid status choice.")
-            return
+    if user_project:
+        project_tasks = user_project["projects"][0]["tasks"]  #assuming only one project with the same name
 
-        #checking if new status is different than current status
-        if found_task.status == status:
-            print("Task is already in the selected status.")
+        #find the task by title within the project's tasks
+        found_task = None
+        for task in project_tasks:
+            if task["title"] == task_name:
+                found_task = task
+                break
+
+        if found_task:
+            new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
+
+            if new_status == "a":
+                status = Status.NOT_STARTED
+            elif new_status == "b":
+                status = Status.IN_PROGRESS
+            elif new_status == "c":
+                status = Status.COMPLETED
+            else:
+                print("Invalid status choice.")
+                return
+
+            #update the status of the task
+            found_task["status"] = status
+
+            #update the database
+            db.users.update_one(
+                {"username": USER, "projects.name": project},
+                {"$set": {"projects.$.tasks": project_tasks}}
+            )
+
+            print("Successfully updated")
         else:
-            found_task.status = status
-            print("Status changed.")
+            print("Task not found.")
     else:
-        print("Task not found.")
+        print("Project not found.")
         
 def viewStatus(project):
     # view status of a task
@@ -131,7 +150,7 @@ def viewStatus(project):
     
     print("Task not found.")
     return
-    
+
     
 def addTaskToProject():
     project_name = input("Enter the project name: ")
