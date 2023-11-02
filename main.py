@@ -96,19 +96,16 @@ def createTask(project):
     
     
 def changeStatus(project):
-    # User can change task status
+    #user can change task status
     task_name = input("Enter the task name: ")
 
-    #finding task object
-    found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
-            found_task = task
-            break
+    #find the task within the project by name
+    task = next((t for t in project['tasks'] if t['title'] == task_name), None)
 
-    if found_task is not None:
-        new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
-        
+    if task:
+        print("Current Status:", task["status"])
+        new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\nNew Status: ")
+
         if new_status == "a":
             status = Status.NOT_STARTED
         elif new_status == "b":
@@ -119,68 +116,56 @@ def changeStatus(project):
             print("Invalid status choice.")
             return
 
-        #checking if new status is different than current status
-        if found_task.status == status:
-            print("Task is already in the selected status.")
-        else:
-            found_task.status = status
-            print("Status changed.")
+        task['status'] = status
+        db.users.update_one(
+            {"username": USER, "projects.name": project['name']},
+            {"$set": {"projects.$.tasks": project['tasks']}}
+        )
+        print("Status changed!")
+
     else:
-        print("Task not found.")
+        print("Task not found in this project.")
+
+
         
 def viewStatus(project):
     # view status of a task
     task_name = input("Enter the task name: ")
 
-    #finding task and outputting it for the user to see
-    found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
-            print(task)
-            return
-    
-    print("Task not found.")
-    return
-    
-    
-def addTaskToProject():
-    project_name = input("Enter the project name: ")
+    # find the task within the project by name
+    task = next((t for t in project['tasks'] if t['title'] == task_name), None)
 
-    #finding inputted project
-    found_project = None
-    for project in Project().projects:
-        if project.name == project_name:
-            
-            task_name = input("Enter the task name: ")
+    if task: #if exists, then print the status
+        print("Current Status:", task["status"])
 
-            #finding inputted task
-            found_task = None
-            for task in Task().tasks:
-                if task.title == task_name:
-                    project.add_task(task) #adding task to project
-            
-            print("Task not found.")            
-    
-    print("Project not found.")    
+    else:
+        print("Task not found in this project.")
     
 def removeTaskFromProject():
-    # User can remove task from project
+    #user can remove task from project
     project_name = input("Enter the project name: ")
 
-    found_project = None
-    for project in Project().projects:
-        if project.name == project_name:
-            
-            task_name = input("Enter the task name: ")
-        
-            found_task = None
-            for task in Task().tasks:
-                if task.title == task_name:
-                    project.remove_task(task) #removing task from project if both task and project are found
-            
-            print("Task not found.")            
-    
-    print("Project not found.")    
+    #find the project by name
+    project = db.users.find_one({"username": USER, "projects.name": project_name})
+
+    if project:
+        task_name = input("Enter the task name: ")
+
+        #find the task within the project by name
+        task_to_remove = next((task for task in project["projects"][0]["tasks"] if task["title"] == task_name), None)
+
+        if task_to_remove:
+
+            db.users.update_one(
+                {"username": USER, "projects.name": project_name},
+                {"$pull": {"projects.$.tasks": task_to_remove}})
+
+            print("Task removed from the project.")
+
+        else:
+            print("Task not found in this project.")
+    else:
+        print("Project not found.")
     
 def viewProject():
     # Allows user to view project
@@ -294,7 +279,7 @@ def chooseProj(projList):
         projManage(selectProject)
     elif select == 0:
         createProject()
-        chooseProj()
+        chooseProj(projList)
     else:
         print("Invalid entry. Please try again.")
         
