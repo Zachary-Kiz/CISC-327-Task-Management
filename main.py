@@ -168,16 +168,17 @@ def removeTaskFromProject():
         print("Project not found.")
     
 def viewProject():
-    # Allows user to view project
+    #allows user to view project
     project_name = input("Enter the project name: ")
     
     #finding inputted project and outputting it
-    found_project = None
-    for project in Project().projects:
-        if project.name == project_name:
-            print(project)
-            
-    print("Project not found.")   
+    project = db.users.find_one({"username": USER, "projects.name": project_name})
+
+    if project:
+        printTasks(project)
+
+    else:
+        print("Project not found.")
 
 def sortByPriority(taskList):
     # Prints tasks sorted by priority
@@ -284,16 +285,15 @@ def chooseProj(projList):
         print("Invalid entry. Please try again.")
         
 def printTasks(project):
-    # Prints all tasks in a project for user
-    project.tasks.sort()
-    if len(project.tasks) == 0:
-        print("No tasks currently assigned to project")
+    # Prints the names of all tasks in the project
+    tasks = project["projects"][0]["tasks"]
+
+    if not tasks:
+        print("No tasks currently assigned to this project.")
     else:
-        x = 1
-        for task in project.tasks:
-            print(str(x) + ". ", end="")
-            print(task)
-            x += 1
+        print("Tasks in project:", project["projects"][0]["name"])
+        for i, task in enumerate(tasks, start=1):
+            print(f"{i}. {task['title']}")
 
 #add members to the current project
 def addMembers(project):
@@ -356,7 +356,7 @@ def projManage(project):
     # Function for interacting with tasks within a project
     check = True
     while check:
-        print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to add team members, 5 to exit")
+        print("Press 1 to view tasks, 2 to create/remove a task, 3 to update task details, 4 to add team members, 5 to exit")
         userInput = input()
         if userInput == "1":
             print("Press 1 to view sorted alphabetically, 2 to view sorted by priority, 3 to view sorted by deadline")
@@ -373,7 +373,11 @@ def projManage(project):
                 task = project.tasks[int(viewMore)-1]
                 task.view_task()
         elif userInput == "2":
-            createTask(project)
+            choice = input("Would you like to\n1. Create a task\n2. Remove a task from a project\nEnter: ")
+            if choice == "1":
+                createTask(project)
+            elif choice == "2":
+                removeTaskFromProject()
         elif userInput == "3":
             choice = input("Enter 1 to update a priority, 2 to update a deadline, 3 to update status, 4 to assign members: ")
             if choice == "1":
