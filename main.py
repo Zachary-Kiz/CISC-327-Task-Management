@@ -92,6 +92,10 @@ def createTask(project):
 
     if extra == "N":
         print("Returning to project management...")
+        data = db.users.find_one({"username": USER, "projects.name":project['name']})
+        for x in data['projects']:
+            if x['name'] == project['name']:
+                project = x
         return projManage(project)
     
     
@@ -186,11 +190,11 @@ def sortByPriority(taskList):
     medPri = []
     highPri = []
     for task in taskList:
-        if task.priority == "L":
+        if task['priority'] == "L":
             lowPri.append(task)
-        if task.priority == "M":
+        if task['priority']  == "M":
             medPri.append(task)
-        if task.priority == "H":
+        if task['priority']  == "H":
             highPri.append(task)
     lowPri.sort()
     medPri.sort()
@@ -199,29 +203,30 @@ def sortByPriority(taskList):
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
-        print(str(x) + ". " + title.title)
+        print(str(x) + ". " + title['title'] + "\tpriority: "+ title['priority'])
         x += 1
 
 
 def sortDates(taskList):
     # Prints tasks sorted by deadline
-    taskList.sort(key=lambda date: datetime.strptime(date.deadline, "%Y/%m/%d"))
+    taskList.sort(key=lambda date: datetime.strptime(date['deadline'], "%Y/%m/%d"))
     taskList.reverse()
-    for task in taskList:
-        print(task)
+    for i,task in enumerate(taskList,start=1):
+        print(str(i) + ". " + task['title'] + '\tdeadline: ' + task['deadline'])
 
 def updatePriority(project):
+    global USER
     # User can update a priority deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    print("Task priority is: " + task.priority)
+    task = project['tasks'][int(taskNum) - 1]
+    print("Task priority is: " + task['priority'])
     update = input("Enter the new priority of the task: ")
     priors = ["L","M","H"]
     while update not in priors:
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
-    task.update_pri(update)
+    db.users.find_one_and_update({"username":USER,"projects.name":project['name'],"projects.tasks.title":task['title']},{"$set": {"projects.tasks.priority": update}})
 
 def updateDeadline(project):
     # User can update a task deadline
@@ -286,12 +291,13 @@ def chooseProj(projList):
         
 def printTasks(project):
     # Prints the names of all tasks in the project
-    tasks = project["projects"][0]["tasks"]
+    tasks = project["tasks"]
+    print(tasks)
 
     if not tasks:
         print("No tasks currently assigned to this project.")
     else:
-        print("Tasks in project:", project["projects"][0]["name"])
+        print("Tasks in project:", project["name"])
         for i, task in enumerate(tasks, start=1):
             print(f"{i}. {task['title']}")
 
@@ -339,20 +345,21 @@ def notifyLate(projList):
     d1 = date(int(times[0]), int(times[1]), int(times[2]))
     for project in projList:
         lateTasks = []
-        for task in project.tasks:
-            deadline = task.deadline
+        for task in project['tasks']:
+            deadline = task['deadline']
             times2 = deadline.split("/")
             d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
             if d1 - d2 > timedelta(0):
                 lateTasks.append(task)
-        lateTasks.sort()
+        lateTasks = sorted(lateTasks, key=lambda x: x['title'])
         if len(lateTasks) > 0:
             print("Late tasks in project ", end="")
-            print(project)
+            print(project['name'])
             for task in lateTasks:
-                print(task)
+                print(task['title'] + "\tdeadline: "+ task['deadline'])
 
 def projManage(project):
+    
     # Function for interacting with tasks within a project
     check = True
     while check:
@@ -364,14 +371,19 @@ def projManage(project):
             if view == "1":
                 printTasks(project)
             elif view == "2":
-                sortByPriority(project.tasks)
+                sortByPriority(project['tasks'])
             elif view == "3":
-                sortDates(project.tasks)
+                sortDates(project['tasks'])
             print("Enter the number associated with a task if you want to view more details")
             viewMore = input()
             if viewMore.isdigit():
-                task = project.tasks[int(viewMore)-1]
-                task.view_task()
+                task = project['tasks'][int(viewMore)-1]
+                for key in task.keys():
+                    if key != "_id" and key != "custom_fields":
+                        print(key + ": " + str(task[key]))
+                    if key == "custom_fields":
+                        for key2 in task['custom_fields'].keys():
+                            print(key2 + ": " + str(task['custom_fields'][key2]))
         elif userInput == "2":
             choice = input("Would you like to\n1. Create a task\n2. Remove a task from a project\nEnter: ")
             if choice == "1":
@@ -397,6 +409,7 @@ def projManage(project):
 
 
 def main():
+    global USER
     print("Welcome to our task management software!")
     print("Would you like to?")
     print("1. Create Account")
@@ -412,7 +425,8 @@ def main():
         else:
             print("Invalid input. Please enter 1 or 2.")
 
-    projList = []
+    projList = db.users.find_one({"username":USER})
+    projList = projList['projects']
     check = True
     while check:
         notifyLate(projList)
