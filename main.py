@@ -196,23 +196,25 @@ def sortByPriority(taskList):
             medPri.append(task)
         if task['priority']  == "H":
             highPri.append(task)
-    lowPri.sort()
-    medPri.sort()
-    highPri.sort()
+    lowPri = sorted(lowPri, key=lambda x : x['title'])
+    medPri = sorted(medPri, key=lambda x : x['title'])
+    highPri = sorted(highPri, key=lambda x : x['title'])
     highPri.extend(medPri)
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
         print(str(x) + ". " + title['title'] + "\tpriority: "+ title['priority'])
         x += 1
+    return highPri
 
 
 def sortDates(taskList):
     # Prints tasks sorted by deadline
-    taskList.sort(key=lambda date: datetime.strptime(date['deadline'], "%Y/%m/%d"))
+    taskList.sort(key=lambda date: (datetime.strptime(date['deadline'], "%Y/%m/%d"),date['title']))
     taskList.reverse()
     for i,task in enumerate(taskList,start=1):
         print(str(i) + ". " + task['title'] + '\tdeadline: ' + task['deadline'])
+    return taskList
 
 def updatePriority(project):
     global USER
@@ -226,23 +228,32 @@ def updatePriority(project):
     while update not in priors:
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
-    db.users.find_one_and_update({"username":USER,"projects.name":project['name'],"projects.tasks.title":task['title']},{"$set": {"projects.tasks.priority": update}})
+    task['priority'] = update
+    db.users.find_one_and_update(
+        {"username":USER,"projects.name":project['name']},
+        {"$set": {"projects.$.tasks": project['tasks']}}
+        )
+    print("Priority changed!")
 
 def updateDeadline(project):
     # User can update a task deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose deadline you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    if task.deadline == None:
+    
+    task = project['tasks'][int(taskNum) - 1]
+    if task['deadline'] == None:
         print("Task does not currently have a deadline")
     else: 
-        print("Task priority is: " + task.deadline)
+        print("Task priority is: " + task['deadline'])
     deadline = input("Enter the new deadline of the task: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
     
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
-    task.update_date(deadline)
+    task['deadline'] = deadline
+    db.users.find_one_and_update({"username":USER,"projects.name":project['name']},
+                                 {"$set": {"projects.$.tasks": project['tasks']}})
+    print("Deadline updated!")
     
 def projectExistCheck():
     global USER
@@ -292,7 +303,6 @@ def chooseProj(projList):
 def printTasks(project):
     # Prints the names of all tasks in the project
     tasks = project["tasks"]
-    print(tasks)
 
     if not tasks:
         print("No tasks currently assigned to this project.")
@@ -366,18 +376,20 @@ def projManage(project):
         print("Press 1 to view tasks, 2 to create/remove a task, 3 to update task details, 4 to add team members, 5 to exit")
         userInput = input()
         if userInput == "1":
+            proj = project['tasks']
             print("Press 1 to view sorted alphabetically, 2 to view sorted by priority, 3 to view sorted by deadline")
             view = input()
             if view == "1":
                 printTasks(project)
             elif view == "2":
-                sortByPriority(project['tasks'])
+                proj = sortByPriority(project['tasks'])
             elif view == "3":
-                sortDates(project['tasks'])
+                proj = sortDates(project['tasks'])
+
             print("Enter the number associated with a task if you want to view more details")
             viewMore = input()
             if viewMore.isdigit():
-                task = project['tasks'][int(viewMore)-1]
+                task = proj[int(viewMore)-1]
                 for key in task.keys():
                     if key != "_id" and key != "custom_fields":
                         print(key + ": " + str(task[key]))
