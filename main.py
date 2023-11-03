@@ -20,14 +20,17 @@ client = MongoClient("mongodb+srv://zachkizell87:f9gYzb7e5LKSkQJX@cluster0.eyssq
 db = client["mydatabase"]
 USER = None
 
+#function for establishing user account
 def create_account():
     global USER
     username = input("Enter your username: ")
     password = input("Enter your password: ")
+    #username allocated already
     if db.users.find_one({"username": username}):
         print("Username already exists. Please choose a different username.")
         create_account()
     else:
+        #password strength check
         if len(password) < 8 or \
             not any(char.isdigit() for char in password) or \
             not any(char.islower() for char in password) or \
@@ -40,13 +43,13 @@ def create_account():
             USER = username
             print("Account created successfully!")
             
-
+#verifies and log-in function
 def log_in():
     global USER
     username = input("Enter your username: ")
     password = input("Enter your password: ")
     userCheck = db.users.find_one({"username": username, "password": password})
-
+    #ensures user exists 
     if userCheck:
         USER = username
         print("Login successful!")
@@ -297,6 +300,7 @@ def updateDeadline(project):
     print("Deadline updated!")
     
 def projectExistCheck():
+    #function to check project exists 
     global USER
     if db.users.find_one({"username": USER, "projects": {"$exists": True, "$ne": []}}):
         return True
@@ -304,6 +308,7 @@ def projectExistCheck():
         return False
 
 def createProject():
+    #function to quick create additional projects
     global USER
     projectName = input("Enter a project name: ")
     newProject = {
@@ -350,11 +355,12 @@ def printTasks(project):
         print("Tasks in project:", project['name'])
         i = 1
         for task in project['tasks']:
-                print(f"{i}. {task['title']}")
+                print(f"{i}. {task}")
                 i += 1
 
-#add members to the current project
+
 def addMembers(project):
+    #add members to the current project
     global USER
     print("Would you like to add team members to this project? Y or N")
     userInput = input()
@@ -373,8 +379,8 @@ def addMembers(project):
     else:
         return None
 
-#assign team members in project to certain tasks 
 def assignTasks(project):
+    #assign team members in project to certain tasks
     printTasks(project)
     taskNum = input("Enter the number associated with the task you would like to assign: ")
     task = project['tasks'][int(taskNum) - 1]
@@ -407,27 +413,6 @@ def assignTasks(project):
         except ValueError:
             print("Invalid input. Please enter a number.")
 
-
-def notifyLate(projList):
-    # Checks if any tasks are overdue and notifies user
-    today = date.today()
-    dates = today.strftime("%Y/%m/%d")
-    times = dates.split("/")
-    d1 = date(int(times[0]), int(times[1]), int(times[2]))
-    for project in projList:
-        lateTasks = []
-        for task in project.tasks:
-            deadline = task.deadline
-            times2 = deadline.split("/")
-            d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
-            if d1 - d2 > timedelta(0):
-                lateTasks.append(task)
-        lateTasks.sort()
-        if len(lateTasks) > 0:
-            print("Late tasks in project ", end="")
-            print(project)
-            for task in lateTasks:
-                print(task)
 
 def projManage(project):
     # Function for interacting with tasks within a project
@@ -485,7 +470,6 @@ def main():
     projList = []
     check = True
     while check:
-        notifyLate(projList)
         proj = chooseProj(projList)
         if proj == None:
             check = False
