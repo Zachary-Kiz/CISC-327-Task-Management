@@ -225,11 +225,11 @@ def sortByPriority(taskList):
     medPri = []
     highPri = []
     for task in taskList:
-        if task.priority == "L":
+        if task["priority"] == "L":
             lowPri.append(task)
-        if task.priority == "M":
+        if task["priority"] == "M":
             medPri.append(task)
-        if task.priority == "H":
+        if task["priority"]== "H":
             highPri.append(task)
     lowPri = sorted(lowPri, key=lambda x : x['title'])
     medPri = sorted(medPri, key=lambda x : x['title'])
@@ -238,7 +238,7 @@ def sortByPriority(taskList):
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
-        print(str(x) + ". " + title.title)
+        print(str(x) + ". " + title["title"])
         x += 1
     return highPri
 
@@ -246,7 +246,7 @@ def sortByPriority(taskList):
 def sortDates(taskList):
     # Prints tasks sorted by deadline
     taskList.sort(key=lambda date: (datetime.strptime(date['deadline'], "%Y/%m/%d"),date['title']))
-    taskList.reverse()
+    #taskList.reverse()
     for i,task in enumerate(taskList,start=1):
         print(str(i) + ". " + task['title'] + '\tdeadline: ' + task['deadline'])
     return taskList
@@ -350,7 +350,7 @@ def printTasks(project):
         print("Tasks in project:", project['name'])
         i = 1
         for task in project['tasks']:
-                print(f"{i}. {task}")
+                print(f"{i}. {task['title']}")
                 i += 1
 
 #add members to the current project
