@@ -134,8 +134,8 @@ def changeStatus(project):
 
     #finding task object
     found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
+    for task in project['tasks']:
+        if task['title'] == task_name:
             found_task = task
             break
 
@@ -167,8 +167,8 @@ def viewStatus(project):
 
     #finding task and outputting it for the user to see
     found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
+    for task in project['tasks']:
+        if task['title'] == task_name:
             print(task)
             return
     
@@ -202,13 +202,13 @@ def removeTaskFromProject():
 
     found_project = None
     for project in Project().projects:
-        if project.name == project_name:
+        if project['name'] == project_name:
             
             task_name = input("Enter the task name: ")
         
             found_task = None
             for task in Task().tasks:
-                if task.title == task_name:
+                if task['title'] == task_name:
                     project.remove_task(task) #removing task from project if both task and project are found
             
             print("Task not found.")            
@@ -272,10 +272,13 @@ def updatePriority(project):
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
     task['priority'] = update
-    db.users.find_one_and_update(
-        {"username":USER,"projects.name":project['name']},
-        {"$set": {"projects.$.tasks": project['tasks']}}
-        )
+    members = db.users.find({"projects.name": project['name']})
+    memberList = list(members)
+    for member in memberList:
+        db.users.find_one_and_update(
+            {"username":member['username'],"projects.name":project['name']},
+            {"$set": {"projects.$.tasks": project['tasks']}}
+            )
     print("Priority changed!")
 
 
@@ -295,8 +298,11 @@ def updateDeadline(project):
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
     task['deadline'] = deadline
-    db.users.find_one_and_update({"username":USER,"projects.name":project['name']},
-                                 {"$set": {"projects.$.tasks": project['tasks']}})
+    members = db.users.find({"projects.name": project['name']})
+    memberList = list(members)
+    for member in memberList:
+        db.users.find_one_and_update({"username":member['username'],"projects.name":project['name']},
+                                    {"$set": {"projects.$.tasks": project['tasks']}})
     print("Deadline updated!")
     
 def projectExistCheck():
