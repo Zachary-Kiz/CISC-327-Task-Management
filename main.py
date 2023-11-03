@@ -189,7 +189,7 @@ def addTaskToProject():
             #finding inputted task
             found_task = None
             for task in Task().tasks:
-                if task.title == task_name:
+                if task['title ']== task_name:
                     project.add_task(task) #adding task to project
             
             print("Task not found.")            
@@ -234,11 +234,11 @@ def sortByPriority(taskList):
     medPri = []
     highPri = []
     for task in taskList:
-        if task.priority == "L":
+        if task['priority'] == "L":
             lowPri.append(task)
-        if task.priority == "M":
+        if task['priority'] == "M":
             medPri.append(task)
-        if task.priority == "H":
+        if task['priority'] == "H":
             highPri.append(task)
     lowPri = sorted(lowPri, key=lambda x : x['title'])
     medPri = sorted(medPri, key=lambda x : x['title'])
@@ -247,7 +247,7 @@ def sortByPriority(taskList):
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
-        print(str(x) + ". " + title.title)
+        print(str(x) + ". " + title['title'])
         x += 1
     return highPri
 
@@ -264,8 +264,8 @@ def updatePriority(project):
     # User can update a priority deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    print("Task priority is: " + task.priority)
+    task = project['tasks'][int(taskNum) - 1]
+    print("Task priority is: " + task['priority'])
     update = input("Enter the new priority of the task: ")
     priors = ["L","M","H"]
     while update not in priors:
@@ -417,8 +417,8 @@ def notifyLate(projList):
     d1 = date(int(times[0]), int(times[1]), int(times[2]))
     for project in projList:
         lateTasks = []
-        for task in project.tasks:
-            deadline = task.deadline
+        for task in project['tasks']:
+            deadline = task['deadline']
             times2 = deadline.split("/")
             d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
             if d1 - d2 > timedelta(0):
