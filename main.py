@@ -1,4 +1,3 @@
-from taskManager import *
 from datetime import datetime,date, timedelta
 import re
 from pymongo import MongoClient
@@ -45,6 +44,9 @@ def log_in():
 def createTask(project):
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
+    while title == "":
+        print("Error: Task requires a name to create")
+        title = input("Enter a task name: ")
 
     desc = input("Add a task description: ")
     
@@ -52,20 +54,40 @@ def createTask(project):
     
     status_choice = input("Choose a status:\na) not started\nb) in progress\nc) completed\n")
     if status_choice == "a":
-        status = Status.NOT_STARTED
+        status = "Not started"
     elif status_choice == "b":
-        status = Status.IN_PROGRESS
+        status = "In progress"
     else:
-        status = Status.COMPLETED
+        status = "Completed"
         
     
-
-    deadline = input("Enter due date in YYYY/MM/DD format: ")
-    pattern = r'^\d{4}/\d{2}/\d{2}$'
-    
-    while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+    check = True
+    while check:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
+
+        pattern = r'^\d{4}/\d{2}/\d{2}$'
+        
+        while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+            deadline = input("Enter due date in YYYY/MM/DD format: ")
+
+        today = date.today()
+        dates = today.strftime("%Y/%m/%d")
+        times = dates.split("/")
+        d1 = date(int(times[0]), int(times[1]), int(times[2]))
+        times2 = deadline.split("/")
+        d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
+        if d1 - d2 > timedelta(0):
+            print("Deadline is past due. Do you still want to create?")
+            getInput = input("Enter Y for yes, N for no: ")
+            if getInput == "Y":
+                check = False
+        else:
+            check = False
+    
+
+
     assign = []
+
     print("Would you like to add additional fields?")
     extra = input("Enter Y for yes, N for No: ")
     fields = {}
@@ -324,7 +346,6 @@ def chooseProj(projList):
 def printTasks(project):
     # Prints the names of all tasks in the project
     tasks = project["tasks"]
-
     if not tasks:
         print("No tasks currently assigned to this project.")
     else:
@@ -354,6 +375,9 @@ def addMembers(project):
 
 #assign team members in project to certain tasks 
 def assignTasks(project):
+    printTasks(project)
+    taskNum = input("Enter the number associated with the task you would like to assign: ")
+    task = project['tasks'][int(taskNum) - 1]
     members = db.users.find({"projects.name": project['name']})
     print(f"Members for project {project['name']}:")
     memberList = list(members)
@@ -369,17 +393,15 @@ def assignTasks(project):
             if 1 <= selected <= len(memberList):
                 selectedUser = memberList[selected- 1]
                 assign = selectedUser['username']
-                task_data = {
-                    "assigned": assign
-                }
+                task['assigned'] = assign
                 print(f"{assign} has been assigned to the task.")
                 if memberList is []:
-                    db.users.update_one({"username": USER, "projects.name": project['name']},
-                        {"$push": {"projects.$.tasks": task_data}})
+                    db.users.find_one_and_update({"username": USER, "projects.name": project['name']},
+                        {"$push": {"projects.$.tasks": project['tasks']}})
                 else:
                     for i, member in enumerate(memberList, start=1):
-                        db.users.update_one({"username": member['username'], "projects.name": project['name']},
-                            {"$push": {"projects.$.tasks": task_data}})
+                        db.users.find_one_and_update({"username": member['username'], "projects.name": project['name']},
+                            {"$push": {"projects.$.tasks": project['tasks']}})
             else:
                 print("Invalid input. Please select a valid number.")
         except ValueError:
