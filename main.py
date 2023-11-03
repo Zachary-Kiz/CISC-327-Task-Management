@@ -45,6 +45,9 @@ def log_in():
 def createTask(project):
     #creating a task by getting input of title, priority, status and deadline from user
     title = input("Enter a task name: ")
+    while title == "":
+        print("Error: Task requires a name to create")
+        title = input("Enter a task name: ")
 
     desc = input("Add a task description: ")
     
@@ -59,13 +62,33 @@ def createTask(project):
         status = Status.COMPLETED
         
     
-
-    deadline = input("Enter due date in YYYY/MM/DD format: ")
-    pattern = r'^\d{4}/\d{2}/\d{2}$'
-    
-    while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+    check = True
+    while check:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
+
+        pattern = r'^\d{4}/\d{2}/\d{2}$'
+        
+        while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+            deadline = input("Enter due date in YYYY/MM/DD format: ")
+
+        today = date.today()
+        dates = today.strftime("%Y/%m/%d")
+        times = dates.split("/")
+        d1 = date(int(times[0]), int(times[1]), int(times[2]))
+        times2 = deadline.split("/")
+        d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
+        if d1 - d2 > timedelta(0):
+            print("Deadline is past due. Do you still want to create?")
+            getInput = input("Enter Y for yes, N for no: ")
+            if getInput == "Y":
+                check = False
+        else:
+            check = False
+    
+
+
     assign = []
+
     print("Would you like to add additional fields?")
     extra = input("Enter Y for yes, N for No: ")
     fields = {}
