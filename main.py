@@ -124,29 +124,27 @@ def createTask(project):
         print("Returning to project management...")
         return projManage(project)
 
-def updateUsers(project):
-    None
-    
 def changeStatus(project):
     # User can change task status
     task_name = input("Enter the task name: ")
 
     #finding task object
     found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
+    for task in project['tasks']:
+        if task['title'] == task_name:
             found_task = task
             break
+
 
     if found_task is not None:
         new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
         
         if new_status == "a":
-            status = Status.NOT_STARTED
+            status = "Not started"
         elif new_status == "b":
-            status = Status.IN_PROGRESS
+            status = "In progress"
         elif new_status == "c":
-            status = Status.COMPLETED
+            status = "Completed"
         else:
             print("Invalid status choice.")
             return
@@ -166,8 +164,8 @@ def viewStatus(project):
 
     #finding task and outputting it for the user to see
     found_task = None
-    for task in project.tasks:
-        if task.title == task_name:
+    for task in project['tasks']:
+        if task['title'] == task_name:
             print(task)
             return
     
@@ -188,7 +186,7 @@ def addTaskToProject():
             #finding inputted task
             found_task = None
             for task in Task().tasks:
-                if task.title == task_name:
+                if task['title ']== task_name:
                     project.add_task(task) #adding task to project
             
             print("Task not found.")            
@@ -201,13 +199,13 @@ def removeTaskFromProject():
 
     found_project = None
     for project in Project().projects:
-        if project.name == project_name:
+        if project['name'] == project_name:
             
             task_name = input("Enter the task name: ")
         
             found_task = None
             for task in Task().tasks:
-                if task.title == task_name:
+                if task['title'] == task_name:
                     project.remove_task(task) #removing task from project if both task and project are found
             
             print("Task not found.")            
@@ -263,18 +261,21 @@ def updatePriority(project):
     # User can update a priority deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
-    task = project.tasks[int(taskNum) - 1]
-    print("Task priority is: " + task.priority)
+    task = project['tasks'][int(taskNum) - 1]
+    print("Task priority is: " + task['priority'])
     update = input("Enter the new priority of the task: ")
     priors = ["L","M","H"]
     while update not in priors:
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
     task['priority'] = update
-    db.users.find_one_and_update(
-        {"username":USER,"projects.name":project['name']},
-        {"$set": {"projects.$.tasks": project['tasks']}}
-        )
+    members = db.users.find({"projects.name": project['name']})
+    memberList = list(members)
+    for member in memberList:
+        db.users.find_one_and_update(
+            {"username":member['username'],"projects.name":project['name']},
+            {"$set": {"projects.$.tasks": project['tasks']}}
+            )
     print("Priority changed!")
 
 
@@ -294,8 +295,11 @@ def updateDeadline(project):
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
     task['deadline'] = deadline
-    db.users.find_one_and_update({"username":USER,"projects.name":project['name']},
-                                 {"$set": {"projects.$.tasks": project['tasks']}})
+    members = db.users.find({"projects.name": project['name']})
+    memberList = list(members)
+    for member in memberList:
+        db.users.find_one_and_update({"username":member['username'],"projects.name":project['name']},
+                                    {"$set": {"projects.$.tasks": project['tasks']}})
     print("Deadline updated!")
     
 def projectExistCheck():
