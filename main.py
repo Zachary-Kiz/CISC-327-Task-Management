@@ -65,6 +65,7 @@ def createTask(project):
     check = True
     while check:
         deadline = input("Enter due date in YYYY/MM/DD format: ")
+
         pattern = r'^\d{4}/\d{2}/\d{2}$'
         
         while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
@@ -85,6 +86,9 @@ def createTask(project):
             check = False
     
 
+
+    assign = []
+
     print("Would you like to add additional fields?")
     extra = input("Enter Y for yes, N for No: ")
     fields = {}
@@ -101,34 +105,43 @@ def createTask(project):
         "status": status,
         "priority": priority,
         "deadline": deadline,
+        "assigned": assign,
         "custom_fields": fields
     }
-
-    db.users.update_one({"username": USER, "projects.name": project['name']},
+    
+    members = db.users.find({"projects.name": project['name']})
+    memberList = list(members)
+    if memberList is []:
+        db.users.update_one({"username": USER, "projects.name": project['name']},
                         {"$push": {"projects.$.tasks": task_data}})
-
+    else:
+        for i, member in enumerate(memberList, start=1):
+            db.users.update_one({"username": member['username'], "projects.name": project['name']},
+                        {"$push": {"projects.$.tasks": task_data}})
+    
     print("Task created successfully")
 
     if extra == "N":
         print("Returning to project management...")
-        data = db.users.find_one({"username": USER, "projects.name":project['name']})
-        for x in data['projects']:
-            if x['name'] == project['name']:
-                project = x
         return projManage(project)
-    
+
+def updateUsers(project):
+    None
     
 def changeStatus(project):
-    #user can change task status
+    # User can change task status
     task_name = input("Enter the task name: ")
 
-    #find the task within the project by name
-    task = next((t for t in project['tasks'] if t['title'] == task_name), None)
+    #finding task object
+    found_task = None
+    for task in project.tasks:
+        if task.title == task_name:
+            found_task = task
+            break
 
-    if task:
-        print("Current Status:", task["status"])
-        new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\nNew Status: ")
-
+    if found_task is not None:
+        new_status = input("Enter new status:\n a) not started\n b) in progress\n c) completed\n")
+        
         if new_status == "a":
             status = Status.NOT_STARTED
         elif new_status == "b":
@@ -139,56 +152,68 @@ def changeStatus(project):
             print("Invalid status choice.")
             return
 
-        task['status'] = status
-        db.users.update_one(
-            {"username": USER, "projects.name": project['name']},
-            {"$set": {"projects.$.tasks": project['tasks']}}
-        )
-        print("Status changed!")
-
+        #checking if new status is different than current status
+        if found_task.status == status:
+            print("Task is already in the selected status.")
+        else:
+            found_task.status = status
+            print("Status changed.")
     else:
-        print("Task not found in this project.")
-
-
+        print("Task not found.")
         
 def viewStatus(project):
     # view status of a task
     task_name = input("Enter the task name: ")
 
-    # find the task within the project by name
-    task = next((t for t in project['tasks'] if t['title'] == task_name), None)
-
-    if task: #if exists, then print the status
-        print("Current Status:", task["status"])
-
-    else:
-        print("Task not found in this project.")
+    #finding task and outputting it for the user to see
+    found_task = None
+    for task in project.tasks:
+        if task.title == task_name:
+            print(task)
+            return
     
-def removeTaskFromProject():
-    #user can remove task from project
+    print("Task not found.")
+    return
+    
+    
+def addTaskToProject():
     project_name = input("Enter the project name: ")
 
-    #find the project by name
-    project = db.users.find_one({"username": USER, "projects.name": project_name})
+    #finding inputted project
+    found_project = None
+    for project in Project().projects:
+        if project.name == project_name:
+            
+            task_name = input("Enter the task name: ")
 
-    if project:
-        task_name = input("Enter the task name: ")
+            #finding inputted task
+            found_task = None
+            for task in Task().tasks:
+                if task.title == task_name:
+                    project.add_task(task) #adding task to project
+            
+            print("Task not found.")            
+    
+    print("Project not found.")    
+    
+def removeTaskFromProject():
+    # User can remove task from project
+    project_name = input("Enter the project name: ")
 
-        #find the task within the project by name
-        task_to_remove = next((task for task in project["projects"][0]["tasks"] if task["title"] == task_name), None)
-
-        if task_to_remove:
-
-            db.users.update_one(
-                {"username": USER, "projects.name": project_name},
-                {"$pull": {"projects.$.tasks": task_to_remove}})
-
-            print("Task removed from the project.")
-
-        else:
-            print("Task not found in this project.")
-    else:
-        print("Project not found.")
+    found_project = None
+    for project in Project().projects:
+        if project.name == project_name:
+            
+            task_name = input("Enter the task name: ")
+        
+            found_task = None
+            for task in Task().tasks:
+                if task.title == task_name:
+                    project.remove_task(task) #removing task from project if both task and project are found
+            
+            print("Task not found.")            
+    
+    print("Project not found.")    
     
 def viewProject():
     #allows user to view project
@@ -209,11 +234,11 @@ def sortByPriority(taskList):
     medPri = []
     highPri = []
     for task in taskList:
-        if task['priority'] == "L":
+        if task.priority == "L":
             lowPri.append(task)
-        if task['priority']  == "M":
+        if task.priority == "M":
             medPri.append(task)
-        if task['priority']  == "H":
+        if task.priority == "H":
             highPri.append(task)
     lowPri = sorted(lowPri, key=lambda x : x['title'])
     medPri = sorted(medPri, key=lambda x : x['title'])
@@ -222,7 +247,7 @@ def sortByPriority(taskList):
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
-        print(str(x) + ". " + title['title'] + "\tpriority: "+ title['priority'])
+        print(str(x) + ". " + title.title)
         x += 1
     return highPri
 
@@ -236,12 +261,11 @@ def sortDates(taskList):
     return taskList
 
 def updatePriority(project):
-    global USER
     # User can update a priority deadline
     printTasks(project)
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
-    task = project['tasks'][int(taskNum) - 1]
-    print("Task priority is: " + task['priority'])
+    task = project.tasks[int(taskNum) - 1]
+    print("Task priority is: " + task.priority)
     update = input("Enter the new priority of the task: ")
     priors = ["L","M","H"]
     while update not in priors:
@@ -253,6 +277,7 @@ def updatePriority(project):
         {"$set": {"projects.$.tasks": project['tasks']}}
         )
     print("Priority changed!")
+
 
 def updateDeadline(project):
     # User can update a task deadline
@@ -315,7 +340,7 @@ def chooseProj(projList):
         projManage(selectProject)
     elif select == 0:
         createProject()
-        chooseProj(projList)
+        chooseProj(None)
     else:
         print("Invalid entry. Please try again.")
         
@@ -326,45 +351,63 @@ def printTasks(project):
     if not tasks:
         print("No tasks currently assigned to this project.")
     else:
-        print("Tasks in project:", project["name"])
+        print("Tasks in project:", project['name'])
         for i, task in enumerate(tasks, start=1):
             print(f"{i}. {task['title']}")
 
 #add members to the current project
 def addMembers(project):
+    global USER
     print("Would you like to add team members to this project? Y or N")
     userInput = input()
     if userInput == "Y":
-        memberName = input("Enter the usersname you would like to add:")
-        #check user exists in JSON database
-        if memberName not in user_data:
+        memberName = input("Enter the username you would like to add:")
+        userCheck = db.users.find_one({"username": memberName})
+        if not userCheck:
             print("This user does not exist.")
             addMembers(project)
         else:
-            project.add_members(memberName)
-            return project
+            project_data = {
+                "name": project['name'],
+            }
+            db.users.update_one({"username": memberName}, {"$push": {"projects": project}})
+            print(f"User {memberName} added to the project.")
     else:
         return None
 
 #assign team members in project to certain tasks 
 def assignTasks(project):
-    print("Current members in this project: ")
-    print(", ".join(project.members))  
-
-    print("Would you like to assign members to this task? Y or N")
-    userInput = input()
-    if userInput == "Y":
-        memberName = input("Enter the username you would like to add: ")
-        #check if user exists
-        if memberName in project.members:
-            print(f"{memberName} has been assigned to the task.")
-            return project
-        else:
-            print(f"{memberName} is not a member of the project. Please add them to the project first.")
-            return None
-    else:
-        print("No members were assigned to the task.")
+    members = db.users.find({"projects.name": project['name']})
+    print(f"Members for project {project['name']}:")
+    memberList = list(members)
+    if memberList is []:
+        print("There are no team members in your project.")
         return None
+    else:
+        for i, member in enumerate(memberList, start=1):
+            print(f"User {i}: {member['username']}")
+        selected = input("Enter the number corresponding to the user you want to assign: ")
+        try:
+            selected = int(selected)
+            if 1 <= selected <= len(memberList):
+                selectedUser = memberList[selected- 1]
+                assign = selectedUser['username']
+                task_data = {
+                    "assigned": assign
+                }
+                print(f"{assign} has been assigned to the task.")
+                if memberList is []:
+                    db.users.update_one({"username": USER, "projects.name": project['name']},
+                        {"$push": {"projects.$.tasks": task_data}})
+                else:
+                    for i, member in enumerate(memberList, start=1):
+                        db.users.update_one({"username": member['username'], "projects.name": project['name']},
+                            {"$push": {"projects.$.tasks": task_data}})
+            else:
+                print("Invalid input. Please select a valid number.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
 
 def notifyLate(projList):
     # Checks if any tasks are overdue and notifies user
@@ -374,25 +417,24 @@ def notifyLate(projList):
     d1 = date(int(times[0]), int(times[1]), int(times[2]))
     for project in projList:
         lateTasks = []
-        for task in project['tasks']:
-            deadline = task['deadline']
+        for task in project.tasks:
+            deadline = task.deadline
             times2 = deadline.split("/")
             d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
             if d1 - d2 > timedelta(0):
                 lateTasks.append(task)
-        lateTasks = sorted(lateTasks, key=lambda x: x['title'])
+        lateTasks.sort()
         if len(lateTasks) > 0:
             print("Late tasks in project ", end="")
-            print(project['name'])
+            print(project)
             for task in lateTasks:
-                print(task['title'] + "\tdeadline: "+ task['deadline'])
+                print(task)
 
 def projManage(project):
-    
     # Function for interacting with tasks within a project
     check = True
     while check:
-        print("Press 1 to view tasks, 2 to create/remove a task, 3 to update task details, 4 to add team members, 5 to exit")
+        print("Press 1 to view tasks, 2 to create a task, 3 to update task details, 4 to add team members, 5 to exit")
         userInput = input()
         if userInput == "1":
             proj = project['tasks']
@@ -416,11 +458,7 @@ def projManage(project):
                         for key2 in task['custom_fields'].keys():
                             print(key2 + ": " + str(task['custom_fields'][key2]))
         elif userInput == "2":
-            choice = input("Would you like to\n1. Create a task\n2. Remove a task from a project\nEnter: ")
-            if choice == "1":
-                createTask(project)
-            elif choice == "2":
-                removeTaskFromProject()
+            createTask(project)
         elif userInput == "3":
             choice = input("Enter 1 to update a priority, 2 to update a deadline, 3 to update status, 4 to assign members: ")
             if choice == "1":
@@ -440,7 +478,6 @@ def projManage(project):
 
 
 def main():
-    global USER
     print("Welcome to our task management software!")
     print("Would you like to?")
     print("1. Create Account")
@@ -456,8 +493,7 @@ def main():
         else:
             print("Invalid input. Please enter 1 or 2.")
 
-    projList = db.users.find_one({"username":USER})
-    projList = projList['projects']
+    projList = []
     check = True
     while check:
         notifyLate(projList)
