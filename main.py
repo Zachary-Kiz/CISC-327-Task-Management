@@ -241,7 +241,7 @@ def sortByPriority(taskList):
     highPri.extend(lowPri)
     x = 1
     for title in highPri:
-        print(str(x) + ". " + title["title"])
+        print(str(x) + ". " + title["title"] + "\tpriority: " + title['priority'])
         x += 1
     return highPri
 
@@ -355,7 +355,7 @@ def printTasks(project):
         print("Tasks in project:", project['name'])
         i = 1
         for task in project['tasks']:
-                print(f"{i}. {task}")
+                print(f"{i}. {task['title']}")
                 i += 1
 
 
