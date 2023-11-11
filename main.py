@@ -138,7 +138,7 @@ def createTask(project):
 
     if extra == "N":
         print("Returning to project management...")
-        return projManage(project)
+        
 
 def changeStatus(project):
     #user can change task status
