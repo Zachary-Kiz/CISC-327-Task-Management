@@ -285,11 +285,12 @@ def updateDeadline(project):
     if task['deadline'] == None:
         print("Task does not currently have a deadline")
     else: 
-        print("Task priority is: " + task['deadline'])
+        print("Task deadline is: " + task['deadline'])
     deadline = input("Enter the new deadline of the task: ")
     pattern = r'^\d{4}/\d{2}/\d{2}$'
     
     while ((re.match(pattern, deadline)) and (1 <= int(deadline[-2:]) <= 31) and (1 <= int(deadline[5:7]) <= 12)) != True:
+        print("Error: not a valid date")
         deadline = input("Enter due date in YYYY/MM/DD format: ")
     task['deadline'] = deadline
     members = db.users.find({"projects.name": project['name']})
@@ -413,6 +414,27 @@ def assignTasks(project):
         except ValueError:
             print("Invalid input. Please enter a number.")
 
+
+def notifyLate(projList):
+    # Checks if any tasks are overdue and notifies user
+    today = date.today()
+    dates = today.strftime("%Y/%m/%d")
+    times = dates.split("/")
+    d1 = date(int(times[0]), int(times[1]), int(times[2]))
+    for project in projList:
+        lateTasks = []
+        for task in project['tasks']:
+            deadline = task['deadline']
+            times2 = deadline.split("/")
+            d2 = date(int(times2[0]), int(times2[1]), int(times2[2]))
+            if d1 - d2 > timedelta(0):
+                lateTasks.append(task)
+        lateTasks.sort()
+        if len(lateTasks) > 0:
+            print("Late tasks in project ", end="")
+            print(project['name'])
+            for task in lateTasks:
+                print(task['title'])
 
 def projManage(project):
     # Function for interacting with tasks within a project
