@@ -185,27 +185,25 @@ def test_badIn_upDead(monkeypatch,capsys):
 
 def test_change_task_status(monkeypatch):
     global USER
-    name = "change status test"
-
-    inputs_create = iter([name, 'Test that task is created', 'L', 'a', '2025/12/12', 'N'])
-    monkeypatch.setattr('builtins.input', lambda _: next(inputs_create))
+    name = "create test" + str(random.random())
+    inputs = iter([name, 'Test that task is created',
+                   'L', 'a', '2025/12/12', 'N'])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
     createTask({"name": "Test"})
+    x = db.users.find_one({"username": USER, "projects.tasks.title": name})
 
-    inputs_change_status = iter(["1", "3", "3", name, "c"])
+    inputs_change_status = iter(["1", "c"])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs_change_status))
-    userStuff = db.users.find_one({"username": USER})
-    changeStatus(userStuff["projects"][0])
+    changeStatus(x['projects'][0])
 
-
-    userStuff = db.users.find_one({"username": USER})
-    updated_status = userStuff['projects'][0]['tasks'][0]['status']
+    updated_status = db.users.find_one({"username": USER, "projects.tasks.title": name})
     assert updated_status == "Completed"
 
 
 def test_create_project(monkeypatch):
     global USER
 
-    name = "Hello"
+    name = "Test"
 
     inputs_create_project = iter([name])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs_create_project))
