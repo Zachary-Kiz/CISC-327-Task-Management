@@ -240,21 +240,15 @@ def test_badIn_upDead(monkeypatch,capsys):
 
 def test_change_task_status(monkeypatch):
     global USER
-    name = "create test" + str(random.random())
-    inputs = iter([name, 'Test that task is created',
-                   'L', 'a', '2025/12/12', 'N'])
-    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
-    createTask({"name": "Test"})
-
-    x = db.users.find_one({"username": USER, "projects.tasks.title": name})
-    projects = [project for project in x.get("projects", []) if project.get("name") == name]
-
+    userStuff = db.users.find_one({"username": USER})
+    sortProj = userStuff["projects"][0]
     inputs_change_status = iter(["1", "c"])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs_change_status))
+    changeStatus(sortProj)
 
-    changeStatus(x)
+    userStuff = db.users.find_one({"username": USER})
+    updated_status = userStuff["projects"][0]["tasks"][0]["status"]
 
-    updated_status = db.users.find_one({"username": USER, "projects.tasks.title": name})
     assert updated_status == "Completed"
 
 
