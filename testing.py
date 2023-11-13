@@ -219,16 +219,17 @@ def test_create_project(monkeypatch):
 def test_add_tasks_to_project(monkeypatch):
     global USER
     project_name = "Test"
+    task_name = "Testing Task"
 
-    inputs_create_task = iter(["Testing Task", 'Task description', 'M', 'b', '2025/12/12', 'N'])
+    inputs_create_task = iter([task_name, 'Task description', 'M', 'b', '2025/12/12', 'N'])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs_create_task))
-    createTask({"name": project_name})
+    createTask({"name": task_name})
 
     project_data = db.users.find_one({"username": USER, "projects.name": project_name})
     project = project_data.get("projects", [])
 
-    project_names = [project['name'] for project in project]
+    all_tasks = [task for project in project for task in project.get('tasks', [])]
 
     assert project is not None
-    assert "Testing Task" in project_names
+    assert task_name in all_tasks
 
