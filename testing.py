@@ -281,7 +281,6 @@ def test_add_tasks_to_project(monkeypatch):
 
     all_tasks = [task for project in projects for task in project.get('tasks.title', [])]
 
-    print(all_tasks)
 
     assert all_tasks is not None
     assert task_name in all_tasks
