@@ -237,6 +237,7 @@ def test_badIn_upDead(monkeypatch,capsys):
     all_outputs = captured.out.split('\n')
     assert all_outputs[4] == "Error: not a valid date"
 
+
 def test_change_task_status(monkeypatch):
     global USER
     name = "create test" + str(random.random())
