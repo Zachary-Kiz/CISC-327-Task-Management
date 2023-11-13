@@ -228,7 +228,6 @@ def test_add_tasks_to_project(monkeypatch):
     project_data = db.users.find_one({"username": USER, "projects.name": project_name})
     project = project_data.get("projects", [])
 
-
     project_names = [project['name'] for project in project]
 
     assert project is not None
