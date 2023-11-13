@@ -190,14 +190,11 @@ def test_change_task_status(monkeypatch):
                    'L', 'a', '2025/12/12', 'N'])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs))
     createTask({"name": "Test"})
-
     x = db.users.find_one({"username": USER, "projects.tasks.title": name})
-    projects = [project for project in x.get("projects", []) if project.get("name") == name]
 
     inputs_change_status = iter(["1", "c"])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs_change_status))
-
-    changeStatus(x)
+    changeStatus(x['projects'][0])
 
     updated_status = db.users.find_one({"username": USER, "projects.tasks.title": name})
     assert updated_status == "Completed"
