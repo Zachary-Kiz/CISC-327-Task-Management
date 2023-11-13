@@ -224,7 +224,6 @@ def test_add_tasks_to_project(monkeypatch):
     monkeypatch.setattr('builtins.input', lambda _: next(inputs_create_task))
     createTask({"name": project_name})
 
-
     project_data = db.users.find_one({"username": USER, "projects.name": project_name})
     project = project_data.get("projects", [])
 
