@@ -237,4 +237,59 @@ def test_badIn_upDead(monkeypatch,capsys):
     all_outputs = captured.out.split('\n')
     assert all_outputs[4] == "Error: not a valid date"
 
+def test_change_task_status(monkeypatch):
+    global USER
+    name = "create test" + str(random.random())
+    inputs = iter([name, 'Test that task is created',
+                   'L', 'a', '2025/12/12', 'N'])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+    createTask({"name": "Test"})
+
+    x = db.users.find_one({"username": USER, "projects.tasks.title": name})
+    projects = [project for project in x.get("projects", []) if project.get("name") == name]
+
+    inputs_change_status = iter(["1", "c"])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs_change_status))
+
+    changeStatus(x)
+
+    updated_status = db.users.find_one({"username": USER, "projects.tasks.title": name})
+    assert updated_status == "Completed"
+
+
+def test_create_project(monkeypatch):
+    global USER
+
+    name = "Test"
+
+    inputs_create_project = iter([name])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs_create_project))
+    createProject()
+
+    userStuff = db.users.find_one({"username": USER})
+    projects = userStuff.get("projects", [])
+    project_names = [project['name'] for project in projects]
+
+    assert name in project_names
+
+
+def test_add_tasks_to_project(monkeypatch):
+    global USER
+    project_name = "Test"
+    task_name = "Testing Task"
+
+    inputs_create_task = iter([task_name, 'Task description', 'M', 'b', '2025/12/12', 'N'])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs_create_task))
+    createTask({"name": task_name})
+
+    projects = db.users.find_one({"username": USER, "projects.name": project_name}).get("projects", [])
+
+    all_tasks = [task for project in projects for task in project.get('tasks.title', [])]
+
+    print(all_tasks)
+
+    assert all_tasks is not None
+    assert task_name in all_tasks
+
+
     
