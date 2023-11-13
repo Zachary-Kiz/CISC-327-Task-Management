@@ -60,6 +60,38 @@ def test_add_field(monkeypatch,capsys):
     x['projects'][0]['tasks'] = []
     db.users.find_one_and_update({"username":USER,"projects.name":x['projects'][0]['name']},
                                     {"$set": {"projects.$.tasks": x['projects'][0]['tasks']}})
+    
+def test_create_due_task(capsys,monkeypatch):
+     global USER
+     name = "create test" + str(random.random())
+     inputs = iter([name, 'Test that task is created', 
+                   'L','a','2000/12/12','Y',"N"])
+     monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+     createTask({"name": "Test"})
+     captured = capsys.readouterr()
+     all_outputs = captured.out.split('\n')
+     assert all_outputs[0] == "Deadline is past due. Do you still want to create?"
+     x = db.users.find_one({"username":USER,"projects.tasks.title": name})
+     assert x['projects'][0]['tasks'][-1]['deadline'] == '2000/12/12'
+     x['projects'][0]['tasks'] = []
+     db.users.find_one_and_update({"username":USER,"projects.name":x['projects'][0]['name']},
+                                    {"$set": {"projects.$.tasks": x['projects'][0]['tasks']}})
+     
+def test_opt_out_create_due_task(capsys,monkeypatch):
+    global USER
+    name = "create test" + str(random.random())
+    inputs = iter([name, 'Test that task is created', 
+                   'L','a','2000/12/12','N',"2200/12/12","N"])
+    monkeypatch.setattr('builtins.input', lambda _: next(inputs))
+    createTask({"name": "Test"})
+    captured = capsys.readouterr()
+    all_outputs = captured.out.split('\n')
+    assert all_outputs[0] == "Deadline is past due. Do you still want to create?"
+    x = db.users.find_one({"username":USER,"projects.tasks.title": name})
+    assert x['projects'][0]['tasks'][-1]['deadline'] == '2200/12/12'
+    x['projects'][0]['tasks'] = []
+    db.users.find_one_and_update({"username":USER,"projects.name":x['projects'][0]['name']},
+                                    {"$set": {"projects.$.tasks": x['projects'][0]['tasks']}})
 
 def test_sort_pri(capsys):
     userStuff = db.users.find_one({"username": USER})
@@ -81,7 +113,7 @@ def test_sort_deadline(capsys):
     assert "2024/12/12" in all_outputs[1]
     assert "2025/12/12" in all_outputs[2]
 
-def test_update_pri(monkeypatch):
+def test_pri_M(monkeypatch):
     userStuff = db.users.find_one({"username": USER})
     sortProj = userStuff["projects"][2]
     inputs = iter(["1","M",])
@@ -89,12 +121,18 @@ def test_update_pri(monkeypatch):
     updatePriority(sortProj)
     userStuff = db.users.find_one({"username": USER})
     assert userStuff['projects'][2]['tasks'][0]['priority'] == "M"
+
+def test_pri_H(monkeypatch):
+    userStuff = db.users.find_one({"username": USER})
     sortProj = userStuff["projects"][2]
     inputs = iter(["1","H",])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs))
     updatePriority(sortProj)
     userStuff = db.users.find_one({"username": USER})
     assert userStuff['projects'][2]['tasks'][0]['priority'] == "H"
+
+def test_pri_L(monkeypatch):
+    userStuff = db.users.find_one({"username": USER})
     sortProj = userStuff["projects"][2]
     inputs = iter(["1","L",])
     monkeypatch.setattr('builtins.input', lambda _: next(inputs))
