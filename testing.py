@@ -160,7 +160,7 @@ def test_not_dead(capsys):
     notifyLate(userStuff['projects'])
     captured = capsys.readouterr()
     all_outputs = captured.out.split('\n')
-    assert all_outputs[0] == "Late tasks in project updateTest"
+    assert all_outputs[0] == "Late tasks in project updateTests"
     assert all_outputs[1] == "lateTask"
 
 def test_badInput_upPri(monkeypatch,capsys):
