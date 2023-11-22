@@ -257,7 +257,11 @@ def sortDates(taskList):
 def updatePriority(project):
     # User can update a priority deadline
     printTasks(project)
+    num_tasks = len(project['tasks'])
     taskNum = input("Enter the number associated with the task whose priority you want to update: ")
+    while int(taskNum) > (num_tasks-1):
+        print("invalid input.")
+        taskNum = input("Enter the number associated with the task whose priority you want to update: ")
     task = project['tasks'][int(taskNum) - 1]
     print("Task priority is: " + task['priority'])
     update = input("Enter the new priority of the task: ")
@@ -265,7 +269,10 @@ def updatePriority(project):
     while update not in priors:
         print("Not a valid input, please try again")
         update = input("Enter the new priority of the task: ")
-    task['priority'] = update
+    if task['priority'] == update:
+        print("you have selected the same priority")
+    else:
+        task['priority'] = update
     members = db.users.find({"projects.name": project['name']})
     memberList = list(members)
     for member in memberList:
