@@ -3,7 +3,7 @@ from pathlib import Path
 from main import *
 import random
 
-USER = "adamciszek"
+USER = "TESTING"
 
 def test_no_add_member(monkeypatch,capsys):
     global USER
