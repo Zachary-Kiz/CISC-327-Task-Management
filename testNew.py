@@ -54,8 +54,7 @@ def test_add_nonexisting_recursive_member(monkeypatch,capsys):
 
 
 def test_update_priority_valid(monkeypatch,capsys):
-    global USER
-    project = db.users.find_one({"username": USER}).get('projects', [])[0]
+    project = db.users.find_one({"username": "adamciszek"}).get('projects', [])[0]
     inputs = iter(["1", "M"])
     monkeypatch.setattr('builtins.input', lambda *args, **kwargs: next(inputs))
 
@@ -64,13 +63,12 @@ def test_update_priority_valid(monkeypatch,capsys):
     captured = capsys.readouterr()
     assert "Priority changed!" in captured.out
 
-    updated_task = db.users.find_one({"username": USER, "projects.name": project['name']})['projects'][0]['tasks'][0]
+    updated_task = db.users.find_one({"username": "adamciszek", "projects.name": project['name']})['projects'][0]['tasks'][0]
     assert updated_task['priority'] == "M"
 
 
 def test_update_priority_nonexisting_task(monkeypatch,capsys):
-    global USER
-    project = db.users.find_one({"username": USER}).get('projects', [])[0]
+    project = db.users.find_one({"username": "adamciszek"}).get('projects', [])[0]
     inputs = iter(["5"])
     monkeypatch.setattr('builtins.input', lambda *args, **kwargs: next(inputs))
 
@@ -84,8 +82,7 @@ def test_update_priority_nonexisting_task(monkeypatch,capsys):
 
 
 def test_update_priority_invalid_priority(monkeypatch,capsys):
-    global USER
-    project = db.users.find_one({"username": USER}).get('projects', [])[0]
+    project = db.users.find_one({"username": "adamciszek"}).get('projects', [])[0]
     inputs = iter(["1", "a"])
     monkeypatch.setattr('builtins.input', lambda *args, **kwargs: next(inputs))
 
@@ -99,8 +96,7 @@ def test_update_priority_invalid_priority(monkeypatch,capsys):
 
 
 def test_update_priority_same_priority(monkeypatch,capsys):
-    global USER
-    project = db.users.find_one({"username": USER}).get('projects', [])[0]
+    project = db.users.find_one({"username": "adamciszek"}).get('projects', [])[0]
     inputs = iter(["1", "M"])
     monkeypatch.setattr('builtins.input', lambda *args, **kwargs: next(inputs))
 
